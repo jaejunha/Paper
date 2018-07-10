@@ -6,35 +6,10 @@
     android:layout_height="match_parent"
     tools:context="kr.ac.postech.dreamline91.client.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <LinearLayout
+    <com.google.android.exoplayer2.ui.SimpleExoPlayerView
+        android:id="@+id/exoView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:weightSum="3">
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:text="ExoPlayer"/>
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:text="Libdash"/>
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:text="Viblast Player"/>
-    </LinearLayout>
+        android:focusable="true"/>
 
 </android.support.constraint.ConstraintLayout>
