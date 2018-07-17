@@ -19,6 +19,8 @@ import org.apache.felix.scr.annotations.*;
 import org.onosproject.net.Device;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortStatistics;
+import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.Rserve.RConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,15 @@ public class AppComponent {
     protected void activate() {
         log.info("Started");
 
+        RConnection c = null;
+        try {
+            c = new RConnection();
+            REXP x = c.eval("R.version.string");
+            System.out.println("R version : " + x.asString());
+            c.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(this::monitorTraffic, 1, 5, TimeUnit.SECONDS);
     }
