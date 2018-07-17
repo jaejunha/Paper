@@ -32,6 +32,22 @@ No Test Code)
 mvn clean install -DskipTests
 ```
 <br>
+# Prerequisite  
+First, you need to run **Rserve()** in R (run as background daemon)  
+```
+install.packages("Rserve")
+library(Rserve)
+Rserve()
+```
+<br>
+If your **R version is low**, then you can upgrade it using following instructions  
+```
+add-apt-repository ppa:marutter/rrutter
+apt update
+apt full-upgrade
+```
+<br>
+
 # Install & Start Application  
 
 (Application can be installed **with ONOS console**)  
