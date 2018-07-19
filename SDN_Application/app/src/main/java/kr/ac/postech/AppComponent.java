@@ -21,8 +21,6 @@ import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortStatistics;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -35,14 +33,17 @@ import java.util.concurrent.TimeUnit;
 @Component(immediate = true)
 public class AppComponent {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    //private final Logger log = LoggerFactory.getLogger(getClass());
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected DeviceService deviceService;
 
+    private final int UNIT_K = 1024;
+    private final int UNIT_B = 8;
+    private final int UNIT_T = 5;
+
     @Activate
     protected void activate() {
-        log.info("Started");
 
         RConnection c = null;
         try {
@@ -54,21 +55,19 @@ public class AppComponent {
             e.printStackTrace();
         }
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::monitorTraffic, 1, 5, TimeUnit.SECONDS);
+        executor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
     }
 
     @Deactivate
     protected void deactivate() {
-        log.info("Stopped");
     }
 
     private void monitorTraffic(){
-        log.info("Monitoring...");
         Iterable<Device> devices = deviceService.getDevices();
         for (Device device : devices) {
             List<PortStatistics> ports = deviceService.getPortDeltaStatistics(device.id());
             for (PortStatistics port : ports)
-                log.info(device.id() + "\'s data: " + port.bytesReceived());
+                System.out.println(device.id() + "\'s data: " + (double)port.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
         }
     }
 }
