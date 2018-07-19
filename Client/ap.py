@@ -26,16 +26,17 @@ def scanESSID(str_interface, bool_print = True):
 	else:
 		list_essid = []
 		list_result = file_out.read().split('\n')
-		for str_result in list_result:
-			if str_result.find('ESSID:') > 0:
-				list_essid.append(str_result.split('ESSID:')[1][1:-1])
-		if bool_print:
-			print 'Conntectable AP List:'
-		        print '========================================================='
-		       	for str_essid in list_essid:
-		                print str_essid
-	      		print '========================================================='
-	return list_essid
+		if list_result:
+			for str_result in list_result:
+				if str_result.find('ESSID:') > 0:
+					list_essid.append(str_result.split('ESSID:')[1][1:-1])
+			if bool_print:
+				print 'Conntectable AP List:'
+			        print '========================================================='
+		       		for str_essid in list_essid:
+		       	        	print str_essid
+	      			print '========================================================='
+			return list_essid
 
 def changeESSID(str_interface, str_essid):
 	if str_essid in scanESSID(str_interface, False): 
