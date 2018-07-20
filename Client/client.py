@@ -4,10 +4,8 @@ import help as Help
 import ap as AP
 
 def treatError():
-	if sys.argv[1] == 'scan':
-		AP.giveAlert('arg_s')
-	elif sys.argv[1] == 'change':
-		AP.giveAlert('arg_c')
+	if sys.argv[1] == 'change':
+		AP.giveAlert('arg')
 	else:
 		Help.giveAlert()	
 
@@ -18,9 +16,12 @@ def parseMenu():
                 elif sys.argv[1] == 'iface':
                         AP.getInterface()
                 elif sys.argv[1] == 'scan':
-                        AP.scanESSID(sys.argv[2])
+                        AP.scanESSID()
         	elif sys.argv[1] == 'change':
-                	AP.changeESSID(sys.argv[2], sys.argv[3])
+			if len(sys.argv) > 3:
+                		AP.changeESSID(sys.argv[2], sys.argv[3])
+			else:
+				AP.changeESSID(sys.argv[2], '')
 		else:
 			treatError()
 	except IndexError:

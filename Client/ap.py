@@ -1,55 +1,40 @@
 import os
 
 def giveAlert(str_error):
-	list_command = {'arg_s': 'Help > python client.py scan <interface name>',
-        		'status': 'Help > Check your interface status',
-			'arg_c': 'Help > python client.py change <interface name> <AP id>',
-			'input': 'Help > Check your input',
+	list_command = {'status': 'Help > Check your interface status',
+			'arg': 'Help > python client.py change <AP id> <AP pwd>',
+			'input': 'Help > Check your input'
         		}
         print list_command[str_error]
 
-def getInterface():
-	file_in, file_out, file_error = os.popen3('iwconfig')
-	list_result = file_out.read().split('\n')
-	for str_result in list_result:
-		if 'ESSID' in str_result:
-			str_interface = str_result.split(' ')[0]
-			str_essid = str_result.split('ESSID:')[1]
-			if 'off/any' in str_essid:
-				essid = 'X'
-			print 'Interface: ' + str_interface + ', AP: ' + str_essid
-
-def scanESSID(str_interface, bool_print = True):
-	file_in, file_out, file_error = os.popen3('iwlist ' + str_interface + ' scanning')
+def scanESSID(bool_print = True):
+	file_in, file_out, file_error = os.popen3('nmcli dev wifi list')
 	if file_error.read():
 		giveAlert('status')
 	else:
-		list_essid = []
 		list_result = file_out.read().split('\n')
-		if list_result:
-			for str_result in list_result:
-				if str_result.find('ESSID:') > 0:
-					list_essid.append(str_result.split('ESSID:')[1][1:-1])
+		list_essid = []
+		if bool_print:
+                       	print ''
+                       	print 'AP List(Using nmcli command):'
+                       	print '================================================================================='
+		for str_result in list_result:
 			if bool_print:
-				print 'Conntectable AP List:'
-			        print '========================================================='
-		       		for str_essid in list_essid:
-		       	        	print str_essid
-	      			print '========================================================='
-			return list_essid
+				if str_result:
+					print str_result
+				if str_result.find('SSID') >= 0:
+					print '================================================================================='
+			if str_result.find('SSID') < 0 and str_result:
+				list_essid.append(str_result.split(' ')[3])
+		if bool_print:
+			print '================================================================================='
+		return list_essid
 
-def changeESSID(str_interface, str_essid):
-	if str_essid in scanESSID(str_interface, False): 
-		file_in, file_out, file_error = os.popen3('iwconfig ' + str_interface + ' essid ' + str_essid)
-		if file_error.read():
-			giveAlert('input')
+def changeESSID(str_essid, str_pwd):
+	if str_essid in scanESSID(False): 
+       		if str_pwd:
+			os.popen('nmcli dev wifi con ' + str_essid + ' password ' + str_pwd)
 		else:
-			file_in, file_out, file_error = os.popen3('iwconfig ' + str_interface)
-	        	str_result = file_out.read().split('\n')[0]
-			print file_out.read() 
-	                if 'off/any' in str_result.split('ESSID:')[1]:
-				giveAlert('input')
-			else:
-				print 'Success connection: ' + str_essid
+			os.popen('nmcli dev wifi con ' + str_essid)
 	else:
 		giveAlert('input')
