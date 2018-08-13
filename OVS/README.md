@@ -15,4 +15,7 @@ Reset **wlan**'s IP and Give this IP to **bridge**
 ovs-vsctl add-port br0 wlan0
 ifconfig wlan0 0
 ifconfig br0 <ip>
+/* if device is client */
+route add default gw <gate way ip>
+/* if device is client */
 ```
