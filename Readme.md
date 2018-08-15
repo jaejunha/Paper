@@ -76,3 +76,7 @@ https://github.com/yusufcakmak/ExoPlayerSample
 ```
 http://uni2u.tistory.com/44 
 ```
+- Python Simple Web Server
+```
+https://gist.github.com/bradmontgomery/2219997
+```

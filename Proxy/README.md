@@ -1,5 +1,9 @@
 # Allow web port   
 To use **proxy server**, need to open web port(**80**)  
 ```
-iptables -D INPUT -p tcp --dport <포트번호> -j ACCEPT
+iptables -A INPUT -p tcp --dport <port number> -j ACCEPT
 ```
+<br>
+# Set Server IP
+Please modify **server.json** file!  
+<br>
