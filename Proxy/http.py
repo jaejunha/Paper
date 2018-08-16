@@ -1,4 +1,13 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+import urllib2
+import re
+
+p = re.compile(r'_[0-9]+k_')
+
+def changeBitrate(str_url):
+	str_before = p.search(str_url).group().split('_')[1]
+	str_after = '2000k'
+	return str_url.replace(str_before, str_after)
 
 class Handler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -7,8 +16,11 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        self._set_headers()
-        self.wfile.write("test")
+	str_url = changeBitrate(self.path)
+	print str_url
+	print
+	self._set_headers()
+        self.wfile.write(urllib2.urlopen(str_url).read())
 
 def runServer(port):
 	HTTPServer(('',int(port)), Handler).serve_forever()
