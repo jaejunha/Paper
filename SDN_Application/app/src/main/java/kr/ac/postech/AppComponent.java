@@ -24,8 +24,15 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 /**
  * Skeletal ONOS application component.
@@ -42,6 +49,9 @@ public class AppComponent {
     private final int UNIT_B = 8;
     private final int UNIT_T = 5;
 
+    private final int INT_NUM_CLIENT = 10;
+    private final int INT_PORT = 7777;
+
     @Activate
     protected void activate() {
 
@@ -54,8 +64,17 @@ public class AppComponent {
         }catch(Exception e){
             e.printStackTrace();
         }
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
+        ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
+        executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
+
+	try{
+		ServerSocket socket_server = new ServerSocket(INT_PORT);
+		ExecutorService executor_pool = Executors.newFixedThreadPool(INT_NUM_CLIENT);
+		while(true)
+			executor_pool.execute(new ServerThread(socket_server.accept()));	
+	}catch(Exception e){
+		e.printStackTrace();
+	}
     }
 
     @Deactivate
@@ -69,5 +88,25 @@ public class AppComponent {
             for (PortStatistics port : ports)
                 System.out.println(device.id() + "\'s data: " + (double)port.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
         }
+    }
+
+    static class ServerThread implements Runnable {
+	private Socket socket_client = null;
+	public ServerThread(Socket socket_client) {
+		this.socket_client = socket_client;
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		try {
+			String str_answer = new BufferedReader(new InputStreamReader(socket_client.getInputStream())).readLine();
+			System.out.println("received: " + str_answer);
+			socket_client.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
     }
 }
