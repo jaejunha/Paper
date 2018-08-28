@@ -1,8 +1,6 @@
 import socket
 import os
 
-#iw dev wlan0 station dump
-
 def giveAlert(str_error):
     list_command = {'status': 'Help > Check your interface status'}
     print list_command[str_error]
@@ -14,6 +12,17 @@ def sendRSSI(str_host, CONST_INT_PORT):
     if file_error.read():
         giveAlert('status')
     else:
-        print 'hello'
-    s.sendall("Hello\n")
-    s.close()
+        list_result = file_out.read().split('\n')
+	list_rssi = []
+	str_dev = ''
+	str_rssi = ''
+        for str_result in list_result:
+	    if str_result.find('Station') >= 0:
+		str_dev = str_result.split(' ')[1]
+            elif str_result.find('signal:') >= 0:
+		str_rssi = str_result.split(' ')[2].strip()
+		list_rssi.append((str_dev, str_rssi))
+
+	print list_rssi
+	s.sendall("Hello\n")
+	s.close()
