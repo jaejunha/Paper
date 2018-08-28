@@ -55,6 +55,7 @@ public class AppComponent {
     @Activate
     protected void activate() {
 
+	//To test R library
         RConnection c = null;
         try {
             c = new RConnection();
@@ -64,9 +65,12 @@ public class AppComponent {
         }catch(Exception e){
             e.printStackTrace();
         }
+
+	//To collect Bandwidth information
         ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
         executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
 
+	//To collect RSSI information
 	try{
 		ServerSocket socket_server = new ServerSocket(INT_PORT);
 		ExecutorService executor_pool = Executors.newFixedThreadPool(INT_NUM_CLIENT);
