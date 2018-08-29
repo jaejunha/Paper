@@ -1,5 +1,7 @@
+import os
 import sys
 import json
+
 import http as HTTP
 import rssi as RSSI
 
@@ -7,18 +9,17 @@ def getIP():
 	f = open('server.json', 'r')
         json_data = json.load(f)
         f.close()
-	return json_data["Server"]["SDN"], json_data["Server"]["Media"]
+	return json_data["Server"] 
 
 def openServer(port):
-	HTTP.runServer(port)	
+	file_in, file_out, file_error = os.popen3('iwconfig ' + sys.argv[1])
+	if file_error.read().find("No such device") < 0:
+		HTTP.runServer(port)	
 
 if __name__ == '__main__':
-	if len(sys.argv) != 3:
-		print 'Help > python proxy.py <wlan interface> <port number>' 
+	if len(sys.argv) != 2:
+		print 'Help > python proxy.py <wlan interface>' 
 	else:
-		str_sdn, str_media = getIP()
-		print str_sdn, str_media
-		bool_error, dic_rssi = RSSI.getRSSI(sys.argv[1])
-		if bool_error == False:
-			print dic_rssi
-			openServer(sys.argv[2])
+		dic_server = getIP()
+		RSSI.runRSSICollector(sys.argv[1], dic_server["SDN_RSSI"])
+		openServer(dic_server["Proxy"]["PORT"])
