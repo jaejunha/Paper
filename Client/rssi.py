@@ -4,6 +4,7 @@ import threading
 import time
 import sys
 import socket
+import re
 
 class AsyncTask:
 	def __init__(self, interface, ip, port):
@@ -33,16 +34,18 @@ def runRSSICollector(interface, server):
 
 def getRSSI(interface):
         dic_rssi = {}
-        file_in, file_out, file_error = os.popen3('iw dev ' + interface + ' station dump')
+        file_in, file_out, file_error = os.popen3('iwlist ' + interface + ' scan')
         if file_error.read():
                 print 'Help > Check wlan interface name'
                 return True, dic_rssi
         else:
                 str_result = file_out.read().split('\n')
-                str_addr = ''
+                str_ap = ''
+		str_signal = ''
                 for str_line in str_result:
-                        if str_line.find('Station') >= 0:
-                                str_addr = str_line.split(' ')[1]
-                        if str_line.find('signal') >= 0:
-                                dic_rssi[str_addr] = str_line.split('\t')[2].split(' ')[0]
+                        if str_line.find('ESSID:') >= 0:
+                                str_ap = str_line.split('"')[1]
+				dic_rssi[str_ap] = str_signal
+			if str_line.find('Signal level') >= 0:
+				str_signal = str_line.strip().split(' ')[3].split('=')[1]            
                 return False, json.dumps({"RSSI": dic_rssi})
