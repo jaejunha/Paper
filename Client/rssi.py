@@ -24,7 +24,8 @@ class AsyncTask:
 	        if bool_error == True:
 			socket_server.close()
 		        sys.exit(1)
-		socket_server.sendall(dic_rssi)
+		socket_server.sendall(dic_rssi + '\n')
+		print socket_server.recv(1024).strip()
 		socket_server.close()
 		threading.Timer(2, self.monitorRSSI).start()
 	
