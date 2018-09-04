@@ -3,17 +3,6 @@
 	<head>
 		<title>Adaptive Streaming in HTML5</title>
 		<script src="js/dash.all.js"></script>
-		<script>
-		// setup the video element and attach it to the Dash player
-		function setupVideo() {
-			var url = "http://dash.akamaized.net/dash264/TestCasesIOP33/multiplePeriods/2/manifest_multiple_Periods_Add_Remove_AdaptationSet.mpd";
-			var context = new Dash.di.DashContext();
-			var player = new MediaPlayer(context);
-			player.startup();
-			player.attachView(document.querySelector("#videoplayer"));
-			player.attachSource(url);
-		}
-		</script>
 		<style>
 		video {
 			width: 80%;
@@ -21,8 +10,12 @@
 		}
     </style>
 	</head>
-	<body onload="setupVideo()">
+	<body>
 		<h1>Adaptive Streaming with HTML5</h1>
-		<video id="videoplayer" controls></video>
+		<video data-dashjs-player autoplay src="http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/OfForestAndMen/MPDs/OfForestAndMen_2s_isoffmain_DIS_23009_1_v_2_1c2_2011_08_30.mpd" controls>
+	        </video>
+        </div>
+        <script src="disth/dash.all.min.js"></script>
+
 	</body>
 </html>
