@@ -2,12 +2,15 @@ from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 import urllib2
 import re
 
-p = re.compile(r'_[0-9]+k_')
+p = re.compile(r'_[0-9]+kbit')
 
 def changeBitrate(str_url):
-	str_before = p.search(str_url).group().split('_')[1]
-	str_after = '2000k'
-	return str_url.replace(str_before, str_after)
+	if p.search(str_url):
+		str_before = p.search(str_url).group().split('_')[1]
+		str_after = '50kbit'
+		return str_url.replace(str_before, str_after)
+	else:
+		return str_url
 
 class Handler(BaseHTTPRequestHandler):
     def _set_headers(self):
