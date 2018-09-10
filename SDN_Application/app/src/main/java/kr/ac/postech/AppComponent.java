@@ -17,11 +17,13 @@ package kr.ac.postech;
 
 import org.apache.felix.scr.annotations.*;
 import org.onosproject.net.Device;
+import org.onosproject.net.Port;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortStatistics;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -52,8 +55,13 @@ public class AppComponent {
     private final int INT_NUM_CLIENT = 10;
     private final int INT_PORT = 7777;
 
+    HashMap<String, String> hash_type;
+
     @Activate
     protected void activate() {
+
+    //Initiation
+        hash_type = new HashMap<String, String>();
 
 	//To test R library
         RConnection c = null;
@@ -88,9 +96,15 @@ public class AppComponent {
     private void monitorTraffic(){
         Iterable<Device> devices = deviceService.getDevices();
         for (Device device : devices) {
-            List<PortStatistics> ports = deviceService.getPortDeltaStatistics(device.id());
-            for (PortStatistics port : ports)
-                System.out.println(device.id() + "\'s data: " + (double)port.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
+            Port port = deviceService.getPorts(device.id()).get(1);
+            String str_portName = port.annotations().value("portName");
+            if(str_portName.equals("ap0"))
+                hash_type.put(device.id().toString(), "AP");
+            else
+                hash_type.put(device.id().toString(),"UE");
+            System.out.println(hash_type.get(device.id().toString()));
+            for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id()))
+                System.out.println(device.id() + "\'s data: " + (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
         }
     }
 
@@ -106,6 +120,10 @@ public class AppComponent {
 		try {
 			String str_answer = new BufferedReader(new InputStreamReader(socket_client.getInputStream())).readLine();
 			System.out.println("received: " + str_answer);
+
+			PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
+			writer.println("OK");
+//			writer.println("nmcli dev wifi con SMALL_AP");
 			socket_client.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
