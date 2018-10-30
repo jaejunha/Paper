@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <climits>
 #include <vector>
 using namespace std;
 
@@ -8,85 +9,155 @@ using namespace std;
 #define T 500
 
 typedef struct UE {
-	int t;
-	double q;
+	int timeSlot;
+	double reqQuality;
+	double quality;
 }UE;
 
-double double_quality[MAX_M + 1][MAX_N + 1][T + 1];
-double double_qualityT[MAX_M + 1][MAX_N + 1][T + 1];
-int int_m, int_n;
-bool p[MAX_M + 1][MAX_N + 1];
+typedef struct AP {
+	int timeSlot;
+}AP;
+
+/*
+int_m: # of AP
+int_n: # of UE
+int_t: maximum time slot
+*/
+int int_m, int_n, int_t;
+
+/*
+Optimized value
+
+double_optimizedDifference: optimized difference
+bool_optimizedP: optimized p
+*/
+double double_optimizedDifference;
+bool bool_optimizedP[MAX_N + 1][MAX_M + 1];
+
+/*
+Relation between UE and AP
+
+bool_r: whether reachable or not
+bool_p: status of connection
+*/
+bool bool_r[MAX_N + 1][MAX_M + 1], bool_p[MAX_N + 1][MAX_M + 1];
+
 vector<UE> vector_ue;
+vector<AP> vector_ap;
 
 void init();
-void copy(bool bool_save);
-void handover();
+double calQuality(int int_ue, int int_availableTimeSlot);
+void dfs(int int_ue);
 
 int main() {
 
+	// Initialize variables
 	init();
-	handover();
+
+	// Start to find optimalized value
+	dfs(1);
+
+	/* Temp value */
+	bool_optimizedP[1][1] = true;
+	bool_optimizedP[2][2] = true;
+	bool_optimizedP[3][2] = true;
+	bool_optimizedP[4][3] = true;
+	/* Temp value */
+
+	cout << "Optimized difference of quality: " << double_optimizedDifference << endl;
+	cout << "Optimized connection:" << endl;
+	for (int i = 1; i <= int_n; i++) {
+		cout << "UE " << i << " is associated with AP ";
+		for (int j = 1; j <= int_m; j++) {
+			if (bool_optimizedP[i][j]) {
+				cout << j << endl;
+				break;
+			}
+		}
+	}
+
+	int temp;
+	cin >> temp;
 
 	return 0;
 }
 
 void init() {
-	for (int i = 0; i <= int_m; i++)
-		for (int j = 0; j <= int_n; j++)
-			for (int k = 0; k <= T; k++)
-				double_quality[i][j][k] = 0;
+	int_n = 4;
+	int_m = 3;
+
+	// Initialize difference of quality
+	double_optimizedDifference = LDBL_MAX;
+
+	// For convenience
+	vector_ue.push_back({ 0,0 });
+	vector_ap.push_back({ 0 });
+
+	for (int i = 1; i <= int_m; i++)
+		vector_ap.push_back({ 0 });
+
+	// Initialize status of connection
+	for (int i = 1; i <= int_n; i++) {
+		for (int j = 1; j <= int_m; j++)
+			bool_optimizedP[i][j] = bool_p[i][j] = false;
+	}
 }
 
-void copy(bool bool_save) {
-	for (int i = 0; i <= int_m; i++)
-		for (int j = 0; j <= int_n; j++)
-			for (int k = 0; k <= T; k++) {
-				if (bool_save)
-					double_quality[i][j][k] = double_qualityT[i][j][k] = 0;
-				else
-					double_qualityT[i][j][k] = double_quality[i][j][k] = 0;
-			}
+double calQuality(int int_ue, int int_availableTimeSlot) {
+	// Not implemented detaily
+
+	return (double)int_availableTimeSlot;
 }
+void dfs(int int_ue) {
 
-void handover() {
+	// End of DFS
+	if (int_ue == int_n + 1) {
+		// Calculate difference of quality
+		double double_difference = 0;
+		for (int i = 1; i <= int_n; i++)
+			double_difference += max(vector_ue[i].reqQuality - vector_ue[i].quality, (double)0);
 
-	bool bool_save;
-	double double_temp;
-	int int_max;
-
-	for (int i = 0; i <= int_n; i++) {
-		for (int j = 0; j <= T; j++) {
-			int_max = 0;
-			for (int k = 0; k <= int_m; k++) {
-				bool_save = false;
-				copy(bool_save);
-
-				/* 경계값은 건너 뜀 */
-				if (!i || !j || !k)
-					continue;
-
-				/* AP랑 UE랑 연결 되어 있지 않으면 건너 뜀 */
-				if (!p[k][i])
-					continue;
-
-				/* 여분의 Time slot이 없는 경우 */
-				if (vector_ue[i - 1].t > j)
-					double_qualityT[k][i][j] = double_qualityT[k][i - 1][j];
-
-				/* 여분의 Time slot이 있는 경우 */
-				else {
-					double_temp = double_qualityT[k][i - 1][j - vector_ue[i - 1].t] + vector_ue[i - 1].q;
-					if (double_qualityT[k][i - 1][j] < double_temp) {
-						if (double_qualityT[k][int_max][j] < double_temp) {
-							double_qualityT[k][int_max][j] = double_qualityT[k][int_max - 1][j];
-							int_max = i;
-							double_qualityT[k][int_max][j] = max(double_qualityT[k][i - 1][j], double_temp);
-						}
-					}
-				}
+		// If optimized value is needed to changed
+		if (double_difference < double_optimizedDifference) {
+			double_optimizedDifference = double_difference;
+			for (int i = 1; i <= int_n; i++) {
+				for (int j = 1; j <= int_m; j++)
+					bool_optimizedP[i][j] = bool_p[i][j];
 			}
-			bool_save = true;
-			copy(bool_save);
 		}
+	}
+
+	for (int i = 1; i <= int_m; i++) {
+
+		// When cannot connect AP
+		if (bool_r[int_ue][i] == false)
+			continue;
+
+		// When AP's time slot is full
+		if (vector_ap[i].timeSlot == int_t)
+			continue;
+
+		bool_p[int_ue][i] = true;
+		// Save values to restore later
+		double double_ueQuality = vector_ue[int_ue].quality;
+		int int_apTimeSlot = vector_ap[i].timeSlot;
+
+		// AP has enough time slot
+		if (vector_ue[int_ue].timeSlot + vector_ap[i].timeSlot <= int_t) {
+			vector_ue[int_ue].quality = calQuality(int_ue, vector_ue[int_ue].timeSlot);
+			vector_ap[i].timeSlot += vector_ue[int_ue].timeSlot;
+		}
+		// Not implemented
+		else {
+
+		}
+
+		// Check next UE
+		dfs(int_ue + 1);
+
+		bool_p[int_ue][i] = false;
+		// Retore values
+		vector_ue[int_ue].quality = double_ueQuality;
+		vector_ap[i].timeSlot = int_apTimeSlot;
 	}
 }
