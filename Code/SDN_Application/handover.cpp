@@ -48,6 +48,7 @@ vector<AP> vector_ap;
 void init();
 double calQuality(int int_ue, int int_availableTimeSlot);
 void dfs(int int_ue);
+void printResult();
 
 int main() {
 
@@ -57,34 +58,15 @@ int main() {
 	// Start to find optimalized value
 	dfs(1);
 
-	/* Temp value */
-	bool_optimizedP[1][1] = true;
-	bool_optimizedP[2][2] = true;
-	bool_optimizedP[3][2] = true;
-	bool_optimizedP[4][3] = true;
-	/* Temp value */
+	// Print result
+	printResult();
 
-	cout << "Optimized difference of quality: " << double_optimizedDifference << endl;
-	cout << "Optimized connection:" << endl;
-	for (int i = 1; i <= int_n; i++) {
-		cout << "UE " << i << " is associated with AP ";
-		for (int j = 1; j <= int_m; j++) {
-			if (bool_optimizedP[i][j]) {
-				cout << j << endl;
-				break;
-			}
-		}
-	}
-
-	int temp;
-	cin >> temp;
+	getchar();
 
 	return 0;
 }
 
 void init() {
-	int_n = 4;
-	int_m = 3;
 
 	// Initialize difference of quality
 	double_optimizedDifference = LDBL_MAX;
@@ -93,14 +75,51 @@ void init() {
 	vector_ue.push_back({ 0,0 });
 	vector_ap.push_back({ 0 });
 
-	for (int i = 1; i <= int_m; i++)
-		vector_ap.push_back({ 0 });
-
 	// Initialize status of connection
 	for (int i = 1; i <= int_n; i++) {
 		for (int j = 1; j <= int_m; j++)
 			bool_optimizedP[i][j] = bool_p[i][j] = false;
 	}
+
+	/* Test case */
+	// 4 UEs and 3 APs
+	int_n = 4;
+	int_m = 3;
+
+	// UE 1 can be associated with AP 1
+	bool_r[1][1] = true;
+
+	// UE 2 can be associated with AP 1 and AP 3
+	bool_r[2][1] = true;
+	bool_r[2][3] = true;
+
+	// UE 3 can be associated with AP 2 and AP 3
+	bool_r[3][2] = true;
+	bool_r[3][3] = true;
+
+	// UE 4 can be associated with AP 3
+	bool_r[4][3] = true;
+
+	// Time slot of AP is 8
+	int_t = 8;
+
+	// Initialize AP vector
+	for (int i = 1; i <= int_m; i++)
+		vector_ap.push_back({ 0 });
+
+	// Initialize UE vector
+	UE ue;
+	for (int i = 1; i <= int_n; i++) {
+		ue.timeSlot = 4;
+		ue.reqQuality = 4;
+		vector_ue.push_back(ue);
+	}
+
+	vector_ue[2].timeSlot = 6;
+	vector_ue[2].reqQuality = 6;
+
+	vector_ue[4].timeSlot = 5;
+	vector_ue[4].reqQuality = 5;
 }
 
 double calQuality(int int_ue, int int_availableTimeSlot) {
@@ -149,7 +168,8 @@ void dfs(int int_ue) {
 		}
 		// Not implemented
 		else {
-
+			vector_ue[int_ue].quality = calQuality(int_ue, int_t - vector_ap[i].timeSlot);
+			vector_ap[i].timeSlot = int_t;
 		}
 
 		// Check next UE
@@ -159,5 +179,23 @@ void dfs(int int_ue) {
 		// Retore values
 		vector_ue[int_ue].quality = double_ueQuality;
 		vector_ap[i].timeSlot = int_apTimeSlot;
+	}
+}
+
+void printResult() {
+	if (double_optimizedDifference == DBL_MAX)
+		cout << "Fail to optimize" << endl;
+	else {
+		cout << "Optimized difference of quality: " << double_optimizedDifference << endl;
+		cout << "Optimized connection:" << endl;
+		for (int i = 1; i <= int_n; i++) {
+			cout << "UE " << i << " is associated with AP ";
+			for (int j = 1; j <= int_m; j++) {
+				if (bool_optimizedP[i][j]) {
+					cout << j << endl;
+					break;
+				}
+			}
+		}
 	}
 }
