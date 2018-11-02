@@ -12,6 +12,7 @@ typedef struct UE {
 	int timeSlot;
 	double reqQuality;
 	double quality;
+	vector<int> rssi;
 }UE;
 
 typedef struct AP {
@@ -46,20 +47,30 @@ vector<UE> vector_ue;
 vector<AP> vector_ap;
 
 void init();
+
+void testCase(int i);
+void callCase1();
+void callCase2();
+
 double calQuality(int int_ue, int int_availableTimeSlot);
 void dfs(int int_ue);
 void printResult();
 
 int main() {
 
-	// Initialize variables
-	init();
+	for (int i = 1; i <= 2; i++) {
+		// Initialize variables
+		init();
 
-	// Start to find optimalized value
-	dfs(1);
+		// Call test case
+		testCase(i);
 
-	// Print result
-	printResult();
+		// Start to find optimalized value
+		dfs(1);
+
+		// Print result
+		printResult();
+	}
 
 	getchar();
 
@@ -71,17 +82,34 @@ void init() {
 	// Initialize difference of quality
 	double_optimizedDifference = LDBL_MAX;
 
+	// Initialize UE and AP
+	vector_ue.clear();
+	vector_ap.clear();
+
 	// For convenience
-	vector_ue.push_back({ 0,0 });
+	vector_ue.push_back({ 0 });
 	vector_ap.push_back({ 0 });
 
 	// Initialize status of connection
 	for (int i = 1; i <= int_n; i++) {
 		for (int j = 1; j <= int_m; j++)
-			bool_optimizedP[i][j] = bool_p[i][j] = false;
+			bool_optimizedP[i][j] = bool_p[i][j] = bool_r[i][j] = false;
 	}
+}
 
-	/* Test case */
+void testCase(int i) {
+	switch (i) {
+	case 1:
+		callCase1();
+		break;
+	case 2:
+		callCase2();
+		break;
+	}
+}
+
+void callCase1() {
+
 	// 4 UEs and 3 APs
 	int_n = 4;
 	int_m = 3;
@@ -107,19 +135,125 @@ void init() {
 	for (int i = 1; i <= int_m; i++)
 		vector_ap.push_back({ 0 });
 
-	// Initialize UE vector
 	UE ue;
-	for (int i = 1; i <= int_n; i++) {
-		ue.timeSlot = 4;
-		ue.reqQuality = 4;
-		vector_ue.push_back(ue);
-	}
+	vector<int> vector_rssi;
 
-	vector_ue[2].timeSlot = 6;
-	vector_ue[2].reqQuality = 6;
+	// UE 1
+	ue.timeSlot = 4;
+	ue.reqQuality = 4;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
 
-	vector_ue[4].timeSlot = 5;
-	vector_ue[4].reqQuality = 5;
+	// UE 2
+	ue.timeSlot = 6;
+	ue.reqQuality = 6;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+
+	// UE 3
+	ue.timeSlot = 4;
+	ue.reqQuality = 4;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+
+	// UE 4
+	ue.timeSlot = 5;
+	ue.reqQuality = 5;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+}
+
+void callCase2() {
+
+	// 4 UEs and 3 APs
+	int_n = 4;
+	int_m = 3;
+
+	// UE 1 can be associated with AP 1
+	bool_r[1][1] = true;
+
+	// UE 2 can be associated with AP 3
+	bool_r[2][3] = true;
+
+	// UE 3 can be associated with AP 2
+	bool_r[3][2] = true;
+
+	// UE 4 can be associated with AP 3
+	bool_r[4][3] = true;
+
+	// Time slot of AP is 8
+	int_t = 8;
+
+	// Initialize AP vector
+	for (int i = 1; i <= int_m; i++)
+		vector_ap.push_back({ 0 });
+
+	UE ue;
+	vector<int> vector_rssi;
+
+	// UE 1
+	ue.timeSlot = 4;
+	ue.reqQuality = 4;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+
+	// UE 2
+	ue.timeSlot = 6;
+	ue.reqQuality = 6;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+
+	// UE 3
+	ue.timeSlot = 4;
+	ue.reqQuality = 4;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
+
+	// UE 4
+	ue.timeSlot = 5;
+	ue.reqQuality = 5;
+	vector_rssi.clear();
+	vector_rssi.push_back(0);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	vector_rssi.push_back(-30);
+	ue.rssi = vector_rssi;
+	vector_ue.push_back(ue);
 }
 
 double calQuality(int int_ue, int int_availableTimeSlot) {
@@ -198,4 +332,5 @@ void printResult() {
 			}
 		}
 	}
+	cout << endl;
 }
