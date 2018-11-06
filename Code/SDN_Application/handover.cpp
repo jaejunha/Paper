@@ -1,7 +1,9 @@
 #include <iostream>
-#include <algorithm>
 #include <climits>
+#include <cstdlib>
+#include <ctime>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 #define MAX_M 100
@@ -52,6 +54,7 @@ void testCase(int i);
 void callCase1();
 void callCase2();
 
+void printInfo();
 double calQuality(int int_ue, int int_availableTimeSlot);
 void dfs(int int_ue);
 void printResult();
@@ -64,6 +67,9 @@ int main() {
 
 		// Call test case
 		testCase(i);
+
+		// Print info
+		printInfo();
 
 		// Start to find optimalized value
 		dfs(1);
@@ -78,6 +84,9 @@ int main() {
 }
 
 void init() {
+
+	// For random RSSI
+	srand(time(NULL));
 
 	// Initialize difference of quality
 	double_optimizedDifference = LDBL_MAX;
@@ -98,6 +107,7 @@ void init() {
 }
 
 void testCase(int i) {
+	cout << "Test Case " << i << endl;
 	switch (i) {
 	case 1:
 		callCase1();
@@ -143,9 +153,8 @@ void callCase1() {
 	ue.reqQuality = 4;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -154,9 +163,8 @@ void callCase1() {
 	ue.reqQuality = 6;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -165,9 +173,8 @@ void callCase1() {
 	ue.reqQuality = 4;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -176,9 +183,8 @@ void callCase1() {
 	ue.reqQuality = 5;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 }
@@ -216,9 +222,8 @@ void callCase2() {
 	ue.reqQuality = 4;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -227,9 +232,8 @@ void callCase2() {
 	ue.reqQuality = 6;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -238,9 +242,8 @@ void callCase2() {
 	ue.reqQuality = 4;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
 
@@ -249,11 +252,27 @@ void callCase2() {
 	ue.reqQuality = 5;
 	vector_rssi.clear();
 	vector_rssi.push_back(0);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
-	vector_rssi.push_back(-30);
+	for (int i = 1; i <= int_m; i++)
+		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
 	vector_ue.push_back(ue);
+}
+
+void printInfo() {
+	cout << "==========================================" << endl;
+	for (int i = 1; i <= int_n; i++) {
+		cout << "UE " << i << " can be associated with";
+		int int_count = 0;
+		for (int j = 1; j <= int_m; j++) {
+			if (bool_r[i][j]) {
+				if (int_count++)
+					cout << ",";
+				cout << " AP " << j << "(" << vector_ue[i].rssi[j] << "dB)";
+			}
+		}
+		cout << endl;
+	}
+	cout << "------------------------------------------" << endl;
 }
 
 double calQuality(int int_ue, int int_availableTimeSlot) {
@@ -332,5 +351,6 @@ void printResult() {
 			}
 		}
 	}
+	cout << "==========================================" << endl;
 	cout << endl;
 }
