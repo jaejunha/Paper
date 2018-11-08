@@ -48,11 +48,14 @@ bool bool_r[MAX_N + 1][MAX_M + 1], bool_p[MAX_N + 1][MAX_M + 1];
 vector<UE> vector_ue;
 vector<AP> vector_ap;
 
+int int_bitrates[] = { 240,360,480,720,1080 };
+
 void init();
 
 void testCase(int i);
 void callCase1();
 void callCase2();
+UE makeUE();
 
 void printInfo();
 double calQuality(int int_ue, int int_availableTimeSlot);
@@ -60,6 +63,9 @@ void dfs(int int_ue);
 void printResult();
 
 int main() {
+
+	// For random value
+	srand((unsigned)time(NULL));
 
 	for (int i = 1; i <= 2; i++) {
 		// Initialize variables
@@ -84,9 +90,6 @@ int main() {
 }
 
 void init() {
-
-	// For random RSSI
-	srand(time(NULL));
 
 	// Initialize difference of quality
 	double_optimizedDifference = LDBL_MAX;
@@ -116,6 +119,14 @@ void testCase(int i) {
 		callCase2();
 		break;
 	}
+
+	// Initialize AP vector
+	for (int i = 1; i <= int_m; i++)
+		vector_ap.push_back({ 0 });
+
+	// Make UE
+	for (int i = 1; i <= int_n; i++)
+		vector_ue.push_back(makeUE());
 }
 
 void callCase1() {
@@ -140,53 +151,6 @@ void callCase1() {
 
 	// Time slot of AP is 8
 	int_t = 8;
-
-	// Initialize AP vector
-	for (int i = 1; i <= int_m; i++)
-		vector_ap.push_back({ 0 });
-
-	UE ue;
-	vector<int> vector_rssi;
-
-	// UE 1
-	ue.timeSlot = 4;
-	ue.reqQuality = 4;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
-
-	// UE 2
-	ue.timeSlot = 6;
-	ue.reqQuality = 6;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
-
-	// UE 3
-	ue.timeSlot = 4;
-	ue.reqQuality = 4;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
-
-	// UE 4
-	ue.timeSlot = 5;
-	ue.reqQuality = 5;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
 }
 
 void callCase2() {
@@ -209,59 +173,26 @@ void callCase2() {
 
 	// Time slot of AP is 8
 	int_t = 8;
+}
 
-	// Initialize AP vector
-	for (int i = 1; i <= int_m; i++)
-		vector_ap.push_back({ 0 });
-
+UE makeUE() {
 	UE ue;
 	vector<int> vector_rssi;
 
-	// UE 1
 	ue.timeSlot = 4;
-	ue.reqQuality = 4;
-	vector_rssi.clear();
+	ue.reqQuality = int_bitrates[rand() % 5];
 	vector_rssi.push_back(0);
 	for (int i = 1; i <= int_m; i++)
 		vector_rssi.push_back(-(rand() % 70 + 30));
 	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
 
-	// UE 2
-	ue.timeSlot = 6;
-	ue.reqQuality = 6;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
-
-	// UE 3
-	ue.timeSlot = 4;
-	ue.reqQuality = 4;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
-
-	// UE 4
-	ue.timeSlot = 5;
-	ue.reqQuality = 5;
-	vector_rssi.clear();
-	vector_rssi.push_back(0);
-	for (int i = 1; i <= int_m; i++)
-		vector_rssi.push_back(-(rand() % 70 + 30));
-	ue.rssi = vector_rssi;
-	vector_ue.push_back(ue);
+	return ue;
 }
 
 void printInfo() {
 	cout << "==========================================" << endl;
 	for (int i = 1; i <= int_n; i++) {
-		cout << "UE " << i << " can be associated with";
+		cout << "UE " << i << "(wants " << vector_ue[i].reqQuality << "bps) can be associated with";
 		int int_count = 0;
 		for (int j = 1; j <= int_m; j++) {
 			if (bool_r[i][j]) {
