@@ -11,14 +11,13 @@ using namespace std;
 #define T 500
 
 typedef struct UE {
-	int timeSlot;
 	double reqQuality;
 	double quality;
 	vector<int> rssi;
 }UE;
 
 typedef struct AP {
-	int timeSlot;
+	double timeSlot;
 }AP;
 
 /*
@@ -53,12 +52,11 @@ int int_bitrates[] = { 240,360,480,720,1080 };
 void init();
 
 void testCase(int i);
-void callCase1();
-void callCase2();
+void setConnection(int i);
 UE makeUE();
 
 void printInfo();
-double calQuality(int int_ue, int int_availableTimeSlot);
+int calQuality(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot);
 void dfs(int int_ue);
 void printResult();
 
@@ -110,15 +108,18 @@ void init() {
 }
 
 void testCase(int i) {
+
 	cout << "Test Case " << i << endl;
-	switch (i) {
-	case 1:
-		callCase1();
-		break;
-	case 2:
-		callCase2();
-		break;
-	}
+
+	// 4 UEs and 3 APs
+	int_n = 4;
+	int_m = 3;
+
+	// Set connection
+	setConnection(i);
+
+	// Time slot of AP is 20
+	int_t = 20;
 
 	// Initialize AP vector
 	for (int i = 1; i <= int_m; i++)
@@ -129,57 +130,43 @@ void testCase(int i) {
 		vector_ue.push_back(makeUE());
 }
 
-void callCase1() {
+void setConnection(int i) {
+	switch (i) {
+	case 1:
+		// UE 1 can be associated with AP 1
+		bool_r[1][1] = true;
 
-	// 4 UEs and 3 APs
-	int_n = 4;
-	int_m = 3;
+		// UE 2 can be associated with AP 1 and AP 3
+		bool_r[2][1] = true;
+		bool_r[2][3] = true;
 
-	// UE 1 can be associated with AP 1
-	bool_r[1][1] = true;
+		// UE 3 can be associated with AP 2 and AP 3
+		bool_r[3][2] = true;
+		bool_r[3][3] = true;
 
-	// UE 2 can be associated with AP 1 and AP 3
-	bool_r[2][1] = true;
-	bool_r[2][3] = true;
+		// UE 4 can be associated with AP 3
+		bool_r[4][3] = true;
+		break;
+	case 2:
+		// UE 1 can be associated with AP 1
+		bool_r[1][1] = true;
 
-	// UE 3 can be associated with AP 2 and AP 3
-	bool_r[3][2] = true;
-	bool_r[3][3] = true;
+		// UE 2 can be associated with AP 3
+		bool_r[2][3] = true;
 
-	// UE 4 can be associated with AP 3
-	bool_r[4][3] = true;
+		// UE 3 can be associated with AP 2
+		bool_r[3][2] = true;
 
-	// Time slot of AP is 8
-	int_t = 8;
-}
-
-void callCase2() {
-
-	// 4 UEs and 3 APs
-	int_n = 4;
-	int_m = 3;
-
-	// UE 1 can be associated with AP 1
-	bool_r[1][1] = true;
-
-	// UE 2 can be associated with AP 3
-	bool_r[2][3] = true;
-
-	// UE 3 can be associated with AP 2
-	bool_r[3][2] = true;
-
-	// UE 4 can be associated with AP 3
-	bool_r[4][3] = true;
-
-	// Time slot of AP is 8
-	int_t = 8;
+		// UE 4 can be associated with AP 3
+		bool_r[4][3] = true;
+		break;
+	}
 }
 
 UE makeUE() {
 	UE ue;
 	vector<int> vector_rssi;
 
-	ue.timeSlot = 4;
 	ue.reqQuality = int_bitrates[rand() % 5];
 	vector_rssi.push_back(0);
 	for (int i = 1; i <= int_m; i++)
@@ -206,10 +193,35 @@ void printInfo() {
 	cout << "------------------------------------------" << endl;
 }
 
-double calQuality(int int_ue, int int_availableTimeSlot) {
+int calQuality(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot) {
 	// Not implemented detaily
 
-	return (double)int_availableTimeSlot;
+	// When there is enough time slot
+	if (double_availableTimeSlot == double_maxTimeSlot)
+		return vector_ue[int_ue].reqQuality;
+
+	double double_tempQuality = vector_ue[int_ue].reqQuality * double_availableTimeSlot / double_maxTimeSlot;
+	int left = 0;
+	int max = sizeof(int_bitrates) / sizeof(int) - 1;
+	int right = max;
+	int mid;
+
+	while (left <= right) {
+
+		mid = (left + right) / 2;
+
+		if (int_bitrates[mid] > double_tempQuality)
+			right = mid - 1;
+		else {
+			if (mid < max) {
+				if (double_tempQuality < int_bitrates[mid + 1])
+					return int_bitrates[mid];
+			}
+			left = mid + 1;
+		}
+	}
+
+	return 0;
 }
 void dfs(int int_ue) {
 
@@ -243,26 +255,29 @@ void dfs(int int_ue) {
 		bool_p[int_ue][i] = true;
 		// Save values to restore later
 		double double_ueQuality = vector_ue[int_ue].quality;
-		int int_apTimeSlot = vector_ap[i].timeSlot;
-
+		double double_apTimeSlot = vector_ap[i].timeSlot;
+		double double_ueTimeSlot = -vector_ue[int_ue].reqQuality / vector_ue[int_ue].rssi[i];
 		// AP has enough time slot
-		if (vector_ue[int_ue].timeSlot + vector_ap[i].timeSlot <= int_t) {
-			vector_ue[int_ue].quality = calQuality(int_ue, vector_ue[int_ue].timeSlot);
-			vector_ap[i].timeSlot += vector_ue[int_ue].timeSlot;
+		if (double_ueTimeSlot + vector_ap[i].timeSlot <= int_t) {
+			vector_ue[int_ue].quality = calQuality(int_ue, double_ueTimeSlot, double_ueTimeSlot);
+			vector_ap[i].timeSlot += double_ueTimeSlot;
 		}
-		// Not implemented
+		// AP has small time slot
 		else {
-			vector_ue[int_ue].quality = calQuality(int_ue, int_t - vector_ap[i].timeSlot);
-			vector_ap[i].timeSlot = int_t;
+			vector_ue[int_ue].quality = calQuality(int_ue, int_t - vector_ap[i].timeSlot, double_ueTimeSlot);
+			// If find bitrate in MPD
+			if (vector_ue[int_ue].quality)
+				vector_ap[i].timeSlot = int_t;
 		}
 
-		// Check next UE
-		dfs(int_ue + 1);
+		// When Success, Check next UE
+		if (vector_ue[int_ue].quality)
+			dfs(int_ue + 1);
 
 		bool_p[int_ue][i] = false;
 		// Retore values
 		vector_ue[int_ue].quality = double_ueQuality;
-		vector_ap[i].timeSlot = int_apTimeSlot;
+		vector_ap[i].timeSlot = double_apTimeSlot;
 	}
 }
 
