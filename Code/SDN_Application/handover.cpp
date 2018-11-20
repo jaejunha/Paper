@@ -52,6 +52,12 @@ vector<AP> vector_ap;
 
 int int_bitrates[] = { 240,360,480,720,1080 };
 
+/* For DFS */
+bool bool_ue[MAX_N + 1];
+
+/* For timer */
+clock_t timer_start, timer_end;
+
 void init();
 
 void testCase(int i);
@@ -78,8 +84,15 @@ int main() {
 		// Print info
 		printInfo();
 
+
+		// Start timer
+		timer_start = clock();
+
 		// Start to find optimalized value
 		dfs(1);
+
+		// Finish timer
+		timer_end = clock();
 
 		// Print result
 		printResult();
@@ -137,6 +150,7 @@ void testCase(int i) {
 	// Initialize optimized bitrate
 	for (int i = 1; i <= int_n; i++)
 		vector_optimizedBitrate.push_back({ 0 });
+
 }
 
 void setConnection(int i) {
@@ -238,8 +252,11 @@ void dfs(int int_ue) {
 	if (int_ue == int_n + 1) {
 		// Calculate difference of quality
 		double double_difference = 0;
-		for (int i = 1; i <= int_n; i++)
+		for (int i = 1; i <= int_n; i++) {
+			if (!bool_ue[i])
+				return;
 			double_difference += max(vector_ue[i].reqBitrate - vector_ue[i].bitrate, (double)0);
+		}
 
 		cout << "difference: " << double_difference << "\t";
 		cout << "[";
@@ -259,6 +276,8 @@ void dfs(int int_ue) {
 					bool_optimizedP[i][j] = bool_p[i][j];
 			}
 		}
+
+		return;
 	}
 
 	for (int i = 1; i <= int_m; i++) {
@@ -292,9 +311,12 @@ void dfs(int int_ue) {
 		}
 
 		// When Success, Check next UE
-		if (vector_ue[int_ue].bitrate)
+		if (vector_ue[int_ue].bitrate) {
+			bool_ue[int_ue] = true;
 			dfs(int_ue + 1);
+		}
 
+		bool_ue[int_ue] = false;
 		vector_ue[int_ue].ap = 0;
 		bool_p[int_ue][i] = false;
 		// Retore values
@@ -308,8 +330,9 @@ void printResult() {
 		cout << "Fail to optimize" << endl;
 	else {
 		cout << "------------------------------------------" << endl;
+		cout << "It took " << (double)(timer_end - timer_start) / 1000 << "sec " << endl;
 		cout << "Optimized difference of bitrate: " << double_optimizedDifference << endl;
-		cout << "Optimized connection:" << endl;
+		cout << "Optimized connection¡å" << endl;
 		for (int i = 1; i <= int_n; i++) {
 			cout << "UE " << i << "(" << vector_optimizedBitrate[i] << "bps) is associated with AP ";
 			for (int j = 1; j <= int_m; j++) {
