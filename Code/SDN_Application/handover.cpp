@@ -49,17 +49,16 @@ bool bool_r[MAX_N + 1][MAX_M + 1], bool_p[MAX_N + 1][MAX_M + 1];
 
 vector<UE> vector_ue;
 vector<AP> vector_ap;
+vector<int> vector_sorted_ue;
 
 int int_bitrates[] = { 240,360,480,720,1080 };
-
-/* For DFS */
-bool bool_ue[MAX_N + 1];
 
 /* For timer */
 clock_t timer_start, timer_end;
 
 void init();
 
+bool sortUE(int i, int j);
 void testCase(int i);
 void setConnection(int i);
 UE makeUE();
@@ -83,7 +82,6 @@ int main() {
 
 		// Print info
 		printInfo();
-
 
 		// Start timer
 		timer_start = clock();
@@ -110,11 +108,13 @@ void init() {
 
 	// Initialize UE and AP
 	vector_ue.clear();
+	vector_sorted_ue.clear();
 	vector_ap.clear();
 	vector_optimizedBitrate.clear();
 
 	// For convenience
 	vector_ue.push_back({ 0 });
+	vector_sorted_ue.push_back(0);
 	vector_ap.push_back({ 0 });
 	vector_optimizedBitrate.push_back({ 0 });
 
@@ -123,6 +123,10 @@ void init() {
 		for (int j = 1; j <= int_m; j++)
 			bool_optimizedP[i][j] = bool_p[i][j] = bool_r[i][j] = false;
 	}
+}
+
+bool sortUE(int i, int j) {
+	return vector_ue[i].reqBitrate < vector_ue[j].reqBitrate;
 }
 
 void testCase(int i) {
@@ -144,8 +148,13 @@ void testCase(int i) {
 		vector_ap.push_back({ 0 });
 
 	// Make UE
-	for (int i = 1; i <= int_n; i++)
+	for (int i = 1; i <= int_n; i++) {
+		vector_sorted_ue.push_back(i);
 		vector_ue.push_back(makeUE());
+	}
+
+	// Sort UE with request bitrate
+	sort(vector_sorted_ue.begin(), vector_sorted_ue.end(), sortUE);
 
 	// Initialize optimized bitrate
 	for (int i = 1; i <= int_n; i++)
@@ -252,11 +261,8 @@ void dfs(int int_ue) {
 	if (int_ue == int_n + 1) {
 		// Calculate difference of quality
 		double double_difference = 0;
-		for (int i = 1; i <= int_n; i++) {
-			if (!bool_ue[i])
-				return;
+		for (int i = 1; i <= int_n; i++)
 			double_difference += max(vector_ue[i].reqBitrate - vector_ue[i].bitrate, (double)0);
-		}
 
 		cout << "difference: " << double_difference << "\t";
 		cout << "[";
@@ -283,44 +289,41 @@ void dfs(int int_ue) {
 	for (int i = 1; i <= int_m; i++) {
 
 		// When cannot connect AP
-		if (bool_r[int_ue][i] == false)
+		if (bool_r[vector_sorted_ue[int_ue]][i] == false)
 			continue;
 
 		// When AP's time slot is full
 		if (vector_ap[i].timeSlot == int_t)
 			continue;
 
-		bool_p[int_ue][i] = true;
-		vector_ue[int_ue].ap = i;
+		bool_p[vector_sorted_ue[int_ue]][i] = true;
+		vector_ue[vector_sorted_ue[int_ue]].ap = i;
 		// Save values to restore later
-		double double_ueQuality = vector_ue[int_ue].bitrate;
+		double double_ueQuality = vector_ue[vector_sorted_ue[int_ue]].bitrate;
 		double double_apTimeSlot = vector_ap[i].timeSlot;
-		double double_ueTimeSlot = -vector_ue[int_ue].reqBitrate / vector_ue[int_ue].rssi[i];
+		double double_ueTimeSlot = -vector_ue[vector_sorted_ue[int_ue]].reqBitrate / vector_ue[vector_sorted_ue[int_ue]].rssi[i];
 
 		// AP has enough time slot
 		if (double_ueTimeSlot + vector_ap[i].timeSlot <= int_t) {
-			vector_ue[int_ue].bitrate = calQuality(int_ue, double_ueTimeSlot, double_ueTimeSlot);
+			vector_ue[vector_sorted_ue[int_ue]].bitrate = calQuality(vector_sorted_ue[int_ue], double_ueTimeSlot, double_ueTimeSlot);
 			vector_ap[i].timeSlot += double_ueTimeSlot;
 		}
 		// AP has small time slot
 		else {
-			vector_ue[int_ue].bitrate = calQuality(int_ue, int_t - vector_ap[i].timeSlot, double_ueTimeSlot);
+			vector_ue[vector_sorted_ue[int_ue]].bitrate = calQuality(vector_sorted_ue[int_ue], int_t - vector_ap[i].timeSlot, double_ueTimeSlot);
 			// If find bitrate in MPD
-			if (vector_ue[int_ue].bitrate)
+			if (vector_ue[vector_sorted_ue[int_ue]].bitrate)
 				vector_ap[i].timeSlot = int_t;
 		}
 
 		// When Success, Check next UE
-		if (vector_ue[int_ue].bitrate) {
-			bool_ue[int_ue] = true;
+		if (vector_ue[vector_sorted_ue[int_ue]].bitrate)
 			dfs(int_ue + 1);
-		}
 
-		bool_ue[int_ue] = false;
-		vector_ue[int_ue].ap = 0;
-		bool_p[int_ue][i] = false;
+		vector_ue[vector_sorted_ue[int_ue]].ap = 0;
+		bool_p[vector_sorted_ue[int_ue]][i] = false;
 		// Retore values
-		vector_ue[int_ue].bitrate = double_ueQuality;
+		vector_ue[vector_sorted_ue[int_ue]].bitrate = double_ueQuality;
 		vector_ap[i].timeSlot = double_apTimeSlot;
 	}
 }
@@ -332,7 +335,7 @@ void printResult() {
 		cout << "------------------------------------------" << endl;
 		cout << "It took " << (double)(timer_end - timer_start) / 1000 << "sec " << endl;
 		cout << "Optimized difference of bitrate: " << double_optimizedDifference << endl;
-		cout << "Optimized connection¡å" << endl;
+		cout << "Optimized connection ¡å" << endl;
 		for (int i = 1; i <= int_n; i++) {
 			cout << "UE " << i << "(" << vector_optimizedBitrate[i] << "bps) is associated with AP ";
 			for (int j = 1; j <= int_m; j++) {
