@@ -8,6 +8,7 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
@@ -17,7 +18,9 @@ using namespace std;
 
 typedef struct UE {
 	double reqBitrate;
+	double reqQuality;
 	double bitrate;
+	double quality;
 	int ap;
 	vector<int> rssi;
 }UE;
@@ -42,6 +45,8 @@ extern int int_bitrates[5];
 
 extern clock_t timer_start, timer_end;
 
+extern bool bool_end;
+
 void init();
 bool sortUE(int i, int j);
 void testCase(int i);
@@ -49,7 +54,8 @@ void setConnection(int i);
 UE makeUE();
 
 void printInfo();
-int calQuality(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot);
+double calQuality(int bitRate);
+int findBitrate(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot);
 void dfs(int int_ue);
 void printResult();
 

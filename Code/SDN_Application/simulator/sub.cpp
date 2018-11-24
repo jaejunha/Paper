@@ -2,6 +2,8 @@
 
 void init() {
 
+	bool_end = false;
+
 	// Initialize difference of quality
 	double_optimizedDifference = LDBL_MAX;
 
@@ -28,7 +30,12 @@ bool sortUE(int i, int j) {
 	return vector_ue[i].reqBitrate < vector_ue[j].reqBitrate;
 }
 
-int calQuality(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot) {
+double calQuality(int bitRate) {
+	double a = 1, b = 1;
+	return a * log(1 + b * bitRate);
+}
+
+int findBitrate(int int_ue, double double_availableTimeSlot, double double_maxTimeSlot) {
 	// Not implemented detaily
 
 	// When there is enough time slot
@@ -82,7 +89,7 @@ void printResult() {
 	else {
 		cout << "------------------------------------------" << endl;
 		cout << "It took " << (double)(timer_end - timer_start) / 1000 << "sec " << endl;
-		cout << "Optimized difference of bitrate: " << double_optimizedDifference << endl;
+		cout << "Optimized difference of total quality: " << double_optimizedDifference << endl;
 		cout << "Optimized connection ¡å" << endl;
 		for (int i = 1; i <= int_n; i++) {
 			cout << "UE " << i << "(" << vector_optimizedBitrate[i] << "bps) is associated with AP ";

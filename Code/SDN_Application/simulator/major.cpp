@@ -71,6 +71,8 @@ UE makeUE() {
 	vector<int> vector_rssi;
 
 	ue.reqBitrate = int_bitrates[rand() % 5];
+	ue.reqQuality = calQuality(ue.reqBitrate);
+
 	vector_rssi.push_back(0);
 	for (int i = 1; i <= int_m; i++)
 		vector_rssi.push_back(-(rand() % 70 + 30));
@@ -86,9 +88,9 @@ void dfs(int int_ue) {
 		// Calculate difference of quality
 		double double_difference = 0;
 		for (int i = 1; i <= int_n; i++)
-			double_difference += max(vector_ue[i].reqBitrate - vector_ue[i].bitrate, (double)0);
+			double_difference += max(vector_ue[i].reqQuality - vector_ue[i].quality, (double)0);
 
-		cout << "difference: " << double_difference << "\t";
+		printf("difference: %.6lf\t", double_difference);
 		cout << "[";
 		for (int i = 1; i <= int_n; i++) {
 			cout << "(UE" << i << "-AP" << vector_ue[i].ap << ", " << vector_ue[i].bitrate << "bps)";
@@ -107,6 +109,9 @@ void dfs(int int_ue) {
 			}
 		}
 
+		if (double_optimizedDifference == 0)
+			bool_end = true;
+
 		return;
 	}
 
@@ -123,31 +128,36 @@ void dfs(int int_ue) {
 		bool_p[vector_sortedUE[int_ue]][i] = true;
 		vector_ue[vector_sortedUE[int_ue]].ap = i;
 		// Save values to restore later
-		double double_ueQuality = vector_ue[vector_sortedUE[int_ue]].bitrate;
 		double double_apTimeSlot = vector_ap[i].timeSlot;
 		double double_ueTimeSlot = -vector_ue[vector_sortedUE[int_ue]].reqBitrate / vector_ue[vector_sortedUE[int_ue]].rssi[i];
 
 		// AP has enough time slot
 		if (double_ueTimeSlot + vector_ap[i].timeSlot <= int_t) {
-			vector_ue[vector_sortedUE[int_ue]].bitrate = calQuality(vector_sortedUE[int_ue], double_ueTimeSlot, double_ueTimeSlot);
+			vector_ue[vector_sortedUE[int_ue]].bitrate = findBitrate(vector_sortedUE[int_ue], double_ueTimeSlot, double_ueTimeSlot);
 			vector_ap[i].timeSlot += double_ueTimeSlot;
 		}
 		// AP has small time slot
 		else {
-			vector_ue[vector_sortedUE[int_ue]].bitrate = calQuality(vector_sortedUE[int_ue], int_t - vector_ap[i].timeSlot, double_ueTimeSlot);
+			vector_ue[vector_sortedUE[int_ue]].bitrate = findBitrate(vector_sortedUE[int_ue], int_t - vector_ap[i].timeSlot, double_ueTimeSlot);
 			// If find bitrate in MPD
 			if (vector_ue[vector_sortedUE[int_ue]].bitrate)
 				vector_ap[i].timeSlot = int_t;
 		}
 
+		// Calculate quality
+		vector_ue[vector_sortedUE[int_ue]].quality = calQuality(vector_ue[vector_sortedUE[int_ue]].bitrate);
+
 		// When Success, Check next UE
 		if (vector_ue[vector_sortedUE[int_ue]].bitrate)
 			dfs(int_ue + 1);
 
+		// Success in finding appropriate handover
+		if (bool_end)
+			return;
+
+		// Retore values
 		vector_ue[vector_sortedUE[int_ue]].ap = 0;
 		bool_p[vector_sortedUE[int_ue]][i] = false;
-		// Retore values
-		vector_ue[vector_sortedUE[int_ue]].bitrate = double_ueQuality;
 		vector_ap[i].timeSlot = double_apTimeSlot;
 	}
 }
