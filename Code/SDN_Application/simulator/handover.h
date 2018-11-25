@@ -14,7 +14,7 @@ using namespace std;
 
 #define MAX_M 100
 #define MAX_N 100
-#define T 500
+#define MAX_T 500
 
 typedef struct UE {
 	double reqBitrate;
