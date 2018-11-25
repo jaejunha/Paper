@@ -15,6 +15,7 @@
  */
 package kr.ac.postech;
 
+import kr.ac.postech.object.UE;
 import org.apache.felix.scr.annotations.*;
 import org.onosproject.net.Device;
 import org.onosproject.net.Port;
@@ -48,6 +49,10 @@ public class AppComponent {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected DeviceService deviceService;
 
+    private final int MAX_M = 100;
+    private final int MAX_N = 100;
+    private final int MAX_T = 500;
+
     private final int UNIT_K = 1024;
     private final int UNIT_B = 8;
     private final int UNIT_T = 5;
@@ -59,6 +64,8 @@ public class AppComponent {
 
     @Activate
     protected void activate() {
+
+        new UE();
 
     //Initiation
         hash_type = new HashMap<String, String>();
