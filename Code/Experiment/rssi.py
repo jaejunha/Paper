@@ -32,23 +32,25 @@ try:
                                 total += 1
                                 seq = (seq + 1) % window
                                 data = int(str_line.strip().split(' ')[3].split('=')[1])
+				if math.isnan(est) or math.isinf(est):
+                                        est = mean
                                 print('real ' + str(data) +' / estimated ' + str(est))
                                 list_result.append((data, est))
                                 if total > window:
                                         if list_data[seq] < thresh:
                                                 over -= 1
-                                        if(data < thresh):
+                                        if(data > thresh):
                                                 over += 1
                                         list_data[seq] = data
                                 else:
-                                        if data < thresh:
+                                        if data > thresh:
                                                 over += 1
                                         list_data.append(data)
                                 break
                 if total > window:
-                        p = 1 - float(over) / window
+                        p = float(over) / window
                 else:
-                        p = 1 - float(over) / total
+                        p = float(over) / total
                 mean = np.mean(list_data)
                 std = np.std(list_data)
                 est = math.sqrt(2)*special.erfinv(2 * p - 1)*std + mean
