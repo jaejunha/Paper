@@ -49,4 +49,4 @@ def getRSSI(interface):
 				dic_rssi[str_ap] = str_signal
 			if str_line.find('Signal level') >= 0:
 				str_signal = str_line.strip().split(' ')[3].split('=')[1]            
-                return False, json.dumps({"RSSI": dic_rssi})
+                return False, json.dumps({"RSSI": list(dic_rssi.items())})
