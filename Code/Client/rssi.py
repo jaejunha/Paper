@@ -7,8 +7,9 @@ import socket
 import re
 
 class AsyncTask:
-	def __init__(self, interface, ip, port):
+	def __init__(self, mac, interface, ip, port):
 		self.interface = interface
+		self.mac = mac
 		self.ip = ip
 		self.port = port
 	
@@ -20,7 +21,7 @@ class AsyncTask:
 			print 'Help > Please check server status'
 			socket_server.close()
 			sys.exit(1) 
-   		bool_error, dic_rssi = getRSSI(self.interface)
+   		bool_error, dic_rssi = getRSSI(self.interface, self.mac)
 	        if bool_error == True:
 			socket_server.close()
 		        sys.exit(1)
@@ -30,10 +31,18 @@ class AsyncTask:
 		threading.Timer(2, self.monitorRSSI).start()
 	
 def runRSSICollector(interface, server):
-	at = AsyncTask(interface, server["IP"], int(server["PORT"]))
+	str_mac = getMAC(interface)
+	at = AsyncTask(interface, str_mac, server["IP"], int(server["PORT"]))
 	at.monitorRSSI()
 
-def getRSSI(interface):
+def getMAC(interface):
+	file_in, file_out, file_error = os.popen3('ifconfig ' + interface)
+	str_line = file_out.read().split('\n')[0]
+	p = re.compile('[a-f0-9]{0,2}:.{0,2}:.*:.*:.*:.{0,2}')
+	m = p.search(str_line)
+	return m.group().replace(':','').rjust(16,'0')
+
+def getRSSI(interface, mac):
         dic_rssi = {}
         file_in, file_out, file_error = os.popen3('iwlist ' + interface + ' scan')
         if file_error.read():
@@ -49,4 +58,4 @@ def getRSSI(interface):
 				dic_rssi[str_ap] = str_signal
 			if str_line.find('Signal level') >= 0:
 				str_signal = str_line.strip().split(' ')[3].split('=')[1]            
-                return False, json.dumps({"RSSI": list(dic_rssi.items())})
+                return False, json.dumps({"RSSI": list(dic_rssi.items()), "MAC":mac})
