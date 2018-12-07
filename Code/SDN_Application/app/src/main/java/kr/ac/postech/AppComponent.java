@@ -15,8 +15,12 @@
  */
 package kr.ac.postech;
 
+import kr.ac.postech.object.AP;
 import kr.ac.postech.object.UE;
+import kr.ac.postech.util.Util;
 import org.apache.felix.scr.annotations.*;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.onosproject.net.Device;
 import org.onosproject.net.Port;
 import org.onosproject.net.device.DeviceService;
@@ -24,8 +28,12 @@ import org.onosproject.net.device.PortStatistics;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import org.json.simple.parser.JSONParser;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,66 +57,174 @@ public class AppComponent {
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected DeviceService deviceService;
 
-    private final int MAX_M = 100;
-    private final int MAX_N = 100;
-    private final int MAX_T = 500;
-
     private final int UNIT_K = 1024;
     private final int UNIT_B = 8;
     private final int UNIT_T = 5;
 
-    private final int INT_NUM_CLIENT = 10;
     private final int INT_PORT = 7777;
 
-    HashMap<String, String> hash_type;
+    private HashMap<String, String> hash_type;
+    private static HashMap<String, ArrayList<Integer>> hash_rssi;
+
+    private static JSONParser parser;
+
+    /**************************************************************************
+     MAX_M: the maximum # of AP
+     MAX_N: the maximum # of UE
+     MAX_T: the maximum # of time slot
+     **************************************************************************/
+    private final int MAX_M = 100;
+    private final int MAX_N = 100;
+    private final int MAX_T = 500;
+
+    /**************************************************************************
+     int_m: # of AP
+     int_n: # of UE
+     int_t: maximum time slot
+     **************************************************************************/
+    private int int_n;
+    private int int_m;
+    private int int_t;
+
+    /**************************************************************************
+     Information of UE and AP
+
+     int_ueID: id of UE
+     list_ue: list of UE information
+     list_ap: list of AP information
+     list_sortedUE: sorted list index of ue information in terms of required bitrate
+     **************************************************************************/
+    private int int_ueID = 1;
+    private ArrayList<UE> list_ue;
+    private ArrayList<AP> list_ap;
+    private ArrayList<UE> list_sortedUE;
+
+    /**************************************************************************
+     Optimized value
+
+     double_optimizedDifference:    optimized difference
+     bool_optimizedP:			    optimized p
+     list_optimizedBitrate:		    optimized bitrate
+     **************************************************************************/
+    private double double_optimizedDifference;
+    private boolean bool_optimizedP[][];
+    private ArrayList<Integer> list_optimizedBitrate;
+
+    /**************************************************************************
+     Relation between UE and AP
+
+     bool_r: whether reachable or not
+     bool_p: status of connection
+     **************************************************************************/
+    private boolean bool_r[][];
+    private boolean bool_p[][];
+
+    /**************************************************************************
+     Success in finding appropriate handover
+     **************************************************************************/
+    boolean bool_end;
 
     @Activate
     protected void activate() {
 
-        new UE();
+        // To simulate, insert random values
+        /**********************************************************************/
+        int_n = 4;
+        int_m = 3;
+        int_t = 20;
 
-    //Initiation
+        list_ue = new ArrayList<>();
+        list_ap = new ArrayList<>();
+
+        list_ue.add(new UE());
+        for (int i = 1; i <= int_n; i++)
+            list_ue.add(new UE(int_ueID++, int_m));
+
+        list_ap.add(new AP());
+        for (int i = 1; i <= int_m; i++)
+            list_ap.add(new AP());
+
+        bool_r = new boolean[MAX_N + 1][MAX_M + 1];
+        bool_p = new boolean[MAX_N + 1][MAX_M + 1];
+        bool_optimizedP = new boolean[MAX_N + 1][MAX_M + 1];
+
+        // UE 1 can be associated with AP 1
+        bool_r[1][1] = true;
+        // UE 2 can be associated with AP 1 and AP 3
+        bool_r[2][1] = true;
+        bool_r[2][3] = true;
+        // UE 3 can be associated with AP 2 and AP 3
+        bool_r[3][2] = true;
+        bool_r[3][3] = true;
+        // UE 4 can be associated with AP 3
+        bool_r[4][3] = true;
+
+        bool_end = false;
+
+        // Initialize difference of bitrate and quality
+        list_optimizedBitrate = new ArrayList<>();
+        list_optimizedBitrate.add(new Integer(0));
+        for(int i=1;i<=int_n;i++)
+            list_optimizedBitrate.add(new Integer(0));
+        double_optimizedDifference = Double.MAX_VALUE;
+
+        printStatus();
+
+        cloneListUE();
+
+        dfs(1);
+
+        printResult();
+
+        /**********************************************************************/
+/*
+        //Initiation
         hash_type = new HashMap<String, String>();
 
-	//To test R library
+        //To test R library
         RConnection c = null;
         try {
             c = new RConnection();
             REXP x = c.eval("R.version.string");
             System.out.println("R version : " + x.asString());
             c.close();
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-	//To collect Bandwidth information
+*/
+        //To collect Bandwidth information
         ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
         executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
 
-	//To collect RSSI information
-	try{
-		ServerSocket socket_server = new ServerSocket(INT_PORT);
-		ExecutorService executor_pool = Executors.newFixedThreadPool(INT_NUM_CLIENT);
-		while(true)
-			executor_pool.execute(new ServerThread(socket_server.accept()));	
-	}catch(Exception e){
-		e.printStackTrace();
-	}
+        JSONParser jsonParser = new JSONParser();
+
+        //To collect RSSI information
+
+        hash_rssi = new HashMap<>();
+        parser = new JSONParser();
+        try {
+            ServerSocket socket_server = new ServerSocket(INT_PORT);
+            ExecutorService executor_pool = Executors.newFixedThreadPool(MAX_N);
+            while (true)
+                executor_pool.execute(new ServerThread(socket_server.accept()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Deactivate
     protected void deactivate() {
     }
 
-    private void monitorTraffic(){
+    private void monitorTraffic() {
         Iterable<Device> devices = deviceService.getDevices();
         for (Device device : devices) {
             Port port = deviceService.getPorts(device.id()).get(1);
             String str_portName = port.annotations().value("portName");
-            if(str_portName.equals("ap0"))
+            if (str_portName.equals("ap0"))
                 hash_type.put(device.id().toString(), "AP");
             else
-                hash_type.put(device.id().toString(),"UE");
+                hash_type.put(device.id().toString(), "UE");
             System.out.println(hash_type.get(device.id().toString()));
             for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id()))
                 System.out.println(device.id() + "\'s data: " + (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
@@ -116,26 +232,179 @@ public class AppComponent {
     }
 
     static class ServerThread implements Runnable {
-	private Socket socket_client = null;
-	public ServerThread(Socket socket_client) {
-		this.socket_client = socket_client;
-	}
+        private Socket socket_client = null;
 
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		try {
-			String str_answer = new BufferedReader(new InputStreamReader(socket_client.getInputStream())).readLine();
-			System.out.println("received: " + str_answer);
+        public ServerThread(Socket socket_client) {
+            this.socket_client = socket_client;
+        }
 
-			PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
-			writer.println("OK");
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            try {
+                String str_answer = new BufferedReader(new InputStreamReader(socket_client.getInputStream())).readLine();
+                System.out.println("received: " + str_answer);
+
+                try {
+
+                    JSONObject jsonObject = (JSONObject) parser.parse(str_answer);
+                    JSONArray jsonArray = (JSONArray)(jsonObject.get("RSSI"));
+                    Iterator<JSONArray> iter = jsonArray.iterator();
+                    while(iter.hasNext()) {
+                        JSONArray object = (JSONArray) iter.next();
+                        String str_ap = (String)object.get(0);
+                        Integer int_rssi = Integer.parseInt((String)object.get(1));
+                        System.out.println(hash_rssi.get(str_ap));
+                        if(hash_rssi.get(str_ap) == null) {
+                            ArrayList<Integer> list_rssi = new ArrayList<>();
+                            list_rssi.add(int_rssi);
+                            hash_rssi.put(str_ap, list_rssi);
+                        }
+                        else {
+                            hash_rssi.get(str_ap).add(int_rssi);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
+                writer.println("OK");
 //			writer.println("nmcli dev wifi con SMALL_AP");
-			socket_client.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+                socket_client.close();
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void printStatus() {
+        System.out.println("==========================================");
+        for (int i = 1; i <= int_n; i++) {
+            System.out.print("UE " + i + "(wants " + list_ue.get(i).getReqBitrate() + "bps) can be associated with");
+            int int_count = 0;
+            for (int j = 1; j <= int_m; j++) {
+                if (bool_r[i][j]) {
+                    if (int_count++ > 0)
+                        System.out.print(",");
+                    System.out.print(" AP " + j + "(" + list_ue.get(i).getRssi().get(j) + "dB)");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("------------------------------------------");
+    }
+
+    public void cloneListUE() {
+        if (list_sortedUE == null)
+            list_sortedUE = new ArrayList<>();
+        else
+            list_sortedUE.clear();
+        list_sortedUE.addAll(list_ue);
+        Collections.sort(list_sortedUE);
+    }
+
+    public void dfs(int int_ue) {
+
+        // End of DFS
+        if (int_ue == int_n + 1) {
+            // Calculate difference of quality
+            double double_difference = 0;
+            for (int i = 1; i <= int_n; i++)
+                double_difference += Math.max(list_ue.get(i).getReqBitrate() - list_ue.get(i).getQuality(), (double)0);
+
+            System.out.print("difference: " + String.format("%.6f",double_difference) + "\t");
+            System.out.print("[");
+            for (int i = 1; i <= int_n; i++) {
+                System.out.print("(UE " + i + "-AP" + list_ue.get(i).getAp() + ", "+ list_ue.get(i).getBitrate() + "bps");
+                if (i <= int_n - 1)
+                    System.out.print(", ");
+            }
+            System.out.println(")]");
+
+            // If optimized value is needed to changed
+            if (double_difference < double_optimizedDifference) {
+                double_optimizedDifference = double_difference;
+                for (int i = 1; i <= int_n; i++) {
+                    list_optimizedBitrate.set(i, list_ue.get(i).getBitrate());
+                    for (int j = 1; j <= int_m; j++)
+                        bool_optimizedP[i][j] = bool_p[i][j];
+                }
+            }
+
+            if (double_optimizedDifference == 0)
+                bool_end = true;
+
+            return;
+        }
+
+        int int_sortedID = list_sortedUE.get(int_ue).getID();
+        for (int i = 1; i <= int_m; i++) {
+
+            // When cannot connect AP
+            if (bool_r[int_sortedID][i] == false)
+                continue;
+
+            // When AP's time slot is full
+            if (list_ap.get(i).getTimeSlot() == int_t)
+                continue;
+
+            bool_p[int_sortedID][i] = true;
+            list_ue.get(int_sortedID).setAp(i);
+            // Save values to restore later
+            double double_apTimeSlot = list_ap.get(i).getTimeSlot();
+            double double_ueTimeSlot = -(double)list_ue.get(int_sortedID).getReqBitrate() / list_ue.get(int_sortedID).getRssi().get(i);
+
+            // AP has enough time slot
+            if (double_ueTimeSlot + list_ap.get(i).getTimeSlot() <= int_t) {
+                list_ue.get(int_sortedID).setBitrate(Util.findBitrate(list_ue.get(int_sortedID), double_ueTimeSlot, double_ueTimeSlot));
+                list_ap.get(i).setTimeSlot(double_ueTimeSlot);
+            }
+            // AP has small time slot
+            else {
+                list_ue.get(int_sortedID).setBitrate(Util.findBitrate(list_ue.get(int_sortedID), int_t - list_ap.get(i).getTimeSlot(), double_ueTimeSlot));
+                // If find bitrate in MPD
+                if (list_ue.get(int_sortedID).getBitrate() > 0)
+                    list_ap.get(i).setTimeSlot(int_t);
+            }
+
+            // Calculate quality
+            list_ue.get(int_sortedID).setQuality(Util.calQuality(list_ue.get(int_sortedID).getBitrate()));
+
+            // When Success, Check next UE
+            if (list_ue.get(int_sortedID).getBitrate() > 0)
+                dfs(int_ue + 1);
+
+            // Success in finding appropriate handover
+            if (bool_end)
+                return;
+
+            // Retore values
+            list_ue.get(int_sortedID).setAp(0);
+            bool_p[int_sortedID][i] = false;
+            list_ap.get(i).setTimeSlot(double_apTimeSlot);
+        }
+    }
+
+    void printResult() {
+        if (double_optimizedDifference == Double.MAX_VALUE)
+            System.out.println("Fail to optimize");
+        else {
+            System.out.println("------------------------------------------");
+            System.out.println("Optimized difference of total quality: " + double_optimizedDifference);
+            System.out.println("Optimized connection ¡å");
+            for (int i = 1; i <= int_n; i++) {
+                System.out.print("UE " + i + "(" + list_optimizedBitrate.get(i) + "bps) is associated with AP ");
+                for (int j = 1; j <= int_m; j++) {
+                    if (bool_optimizedP[i][j]) {
+                        System.out.println(j);
+                        break;
+                    }
+                }
+            }
+        }
+        System.out.println("==========================================");
+        System.out.println();
     }
 }
