@@ -64,8 +64,8 @@ public class AppComponent {
     private final int INT_PORT = 7777;
 
     private HashMap<String, String> hash_type;
-    private static HashMap<String, ArrayList<Integer>> hash_rssi;
-
+    private static HashMap<String, HashMap<String, ArrayList<Integer>>> hash_rssi;	
+    private final static int SIZE_WINDOW = 5;
     private static JSONParser parser;
 
     /**************************************************************************
@@ -196,12 +196,11 @@ public class AppComponent {
         ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
         executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
 
-        JSONParser jsonParser = new JSONParser();
-
         //To collect RSSI information
 
         hash_rssi = new HashMap<>();
-        parser = new JSONParser();
+	parser = new JSONParser();
+
         try {
             ServerSocket socket_server = new ServerSocket(INT_PORT);
             ExecutorService executor_pool = Executors.newFixedThreadPool(MAX_N);
@@ -243,40 +242,84 @@ public class AppComponent {
             // TODO Auto-generated method stub
             try {
                 String str_answer = new BufferedReader(new InputStreamReader(socket_client.getInputStream())).readLine();
-                System.out.println("received: " + str_answer);
+                
+                if (str_answer != null) {
+                    try {
 
-                try {
-
-                    JSONObject jsonObject = (JSONObject) parser.parse(str_answer);
-                    JSONArray jsonArray = (JSONArray)(jsonObject.get("RSSI"));
-                    Iterator<JSONArray> iter = jsonArray.iterator();
-                    while(iter.hasNext()) {
-                        JSONArray object = (JSONArray) iter.next();
-                        String str_ap = (String)object.get(0);
-                        Integer int_rssi = Integer.parseInt((String)object.get(1));
-                        System.out.println(hash_rssi.get(str_ap));
-                        if(hash_rssi.get(str_ap) == null) {
-                            ArrayList<Integer> list_rssi = new ArrayList<>();
-                            list_rssi.add(int_rssi);
-                            hash_rssi.put(str_ap, list_rssi);
+                        JSONObject jsonObject = (JSONObject) parser.parse(str_answer);
+                        String str_connectedAP = (String)jsonObject.get("AP");
+                        String str_mac = (String)jsonObject.get("MAC");
+                        System.out.println("Connected AP: " + str_connectedAP);
+                        System.out.println("MAC address: " + str_mac);
+						
+                        if(hash_rssi.get(str_connectedAP) == null)
+                            hash_rssi.put(str_connectedAP, new HashMap<>());
+                        JSONArray jsonArray = (JSONArray) (jsonObject.get("RSSI"));
+                        Iterator<JSONArray> iter = jsonArray.iterator();
+                        double double_avg = 0, double_std = 0;
+						
+                        while (iter.hasNext()) {
+                            JSONArray object = (JSONArray) iter.next();
+                            String str_ap = (String) object.get(0);
+                            Integer int_rssi = Integer.parseInt((String) object.get(1));
+							
+                            if (hash_rssi.get(str_connectedAP).get(str_ap) == null) {
+                                ArrayList<Integer> list_rssi = new ArrayList<>();
+                                list_rssi.add(int_rssi);
+                                hash_rssi.get(str_connectedAP).put(str_ap, list_rssi);
+								
+                                double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
+                                double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
+                            } 
+                            else {
+                                if(hash_rssi.get(str_connectedAP).get(str_ap).size() < SIZE_WINDOW) {
+                                    hash_rssi.get(str_connectedAP).get(str_ap).add(int_rssi);
+									
+                                    double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
+                                    double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
+                                }
+                                else {
+                                    hash_rssi.get(str_connectedAP).get(str_ap).remove(0);
+                                    hash_rssi.get(str_connectedAP).get(str_ap).add(int_rssi);
+									
+                                    double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
+                                    double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
+                                }
+                            }
+                            System.out.println(double_avg+" "+double_std);
                         }
-                        else {
-                            hash_rssi.get(str_ap).add(int_rssi);
-                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
 
-                PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
-                writer.println("OK");
-//			writer.println("nmcli dev wifi con SMALL_AP");
-                socket_client.close();
-            } catch (Exception e) {
+                    PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
+                    writer.println("OK");
+                    // writer.println("nmcli dev wifi con SMALL_AP");
+                    socket_client.close();
+                }
+            } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
+    }
+
+    public static double getAVG(ArrayList<Integer> list_rssi) {
+        double double_sum = 0;
+        for(Integer rssi: list_rssi) {
+            double_sum+=rssi;
+            System.out.print(rssi+" ");
+        }
+		
+        return double_sum / list_rssi.size();
+    }
+	
+    public static double getSTD(ArrayList<Integer> list_rssi, double double_avg) {
+        double double_sum = 0;
+        for(Integer rssi: list_rssi)
+            double_sum+=(rssi-double_avg)*(rssi-double_avg);
+		
+        return Math.sqrt(double_sum/list_rssi.size());
     }
 
     public void printStatus() {
