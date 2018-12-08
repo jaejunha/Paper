@@ -42,6 +42,13 @@ def getMAC(interface):
 	m = p.search(str_line)
 	return m.group().replace(':','').rjust(16,'0')
 
+def getAP():
+        file_in, file_out, file_error = os.popen3('iwconfig')
+        str_line = file_out.read()
+        p = re.compile('".*"')
+        m = p.search(str_line)
+        return m.group().replace('"','')
+
 def getRSSI(interface, mac):
         dic_rssi = {}
         file_in, file_out, file_error = os.popen3('iwlist ' + interface + ' scan')
@@ -53,9 +60,13 @@ def getRSSI(interface, mac):
                 str_ap = ''
 		str_signal = ''
                 for str_line in str_result:
-                        if str_line.find('ESSID:') >= 0:
-                                str_ap = str_line.split('"')[1]
+			if str_line.find('ESSID:') >= 0:
+				p = re.compile('".*"')
+				m = p.search(str_line)
+				str_ap = m.group().replace('"','')
 				dic_rssi[str_ap] = str_signal
 			if str_line.find('Signal level') >= 0:
-				str_signal = str_line.strip().split(' ')[3].split('=')[1]            
-                return False, json.dumps({"RSSI": list(dic_rssi.items()), "MAC":mac})
+				p = re.compile('-[0-9]*')
+				m = p.search(str_line)
+				str_signal = m.group().strip()
+                return False, json.dumps({"AP": getAP(), "MAC": mac, "RSSI": list(dic_rssi.items())})
