@@ -247,6 +247,18 @@ public class AppComponent {
                         String str_connectedAP = "";
                         String str_mac = "";
                         String str_rssis = "";
+                        String str_bitrate_req = "";
+                        String str_bitrate_sup = "";
+
+                        p = Pattern.compile("\"REQ\": [0-9]+");
+                        m = p.matcher(str_answer);
+                        if(m.find())
+                            str_bitrate_req = m.group().split(" ")[1];
+
+                        p = Pattern.compile("\"SUP\": [0-9]+");
+                        m = p.matcher(str_answer);
+                        if(m.find())
+                            str_bitrate_sup = m.group().split(" ")[1];
 
                         p = Pattern.compile("\"AP\": \"[^\"]*\"");
                         m = p.matcher(str_answer);
@@ -258,6 +270,8 @@ public class AppComponent {
                         if(m.find())
                             str_mac = m.group().split("\"")[3];
 
+                        System.out.println("requested bitrate: " + str_bitrate_req);
+                        System.out.println("supported bitrate: " + str_bitrate_sup);
                         System.out.println("Connected AP: " + str_connectedAP);
                         System.out.println("MAC address: " + str_mac);
 

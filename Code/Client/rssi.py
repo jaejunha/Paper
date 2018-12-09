@@ -69,4 +69,4 @@ def getRSSI(interface, mac):
 				p = re.compile('-[0-9]*')
 				m = p.search(str_line)
 				str_signal = m.group().strip()
-                return False, json.dumps({"AP": getAP(), "MAC": mac, "RSSI": list(dic_rssi.items())})
+                return False, json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(), "MAC": str_mac, "RSSI": list(dic_rssi.items())})
