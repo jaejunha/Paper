@@ -19,8 +19,6 @@ import kr.ac.postech.object.AP;
 import kr.ac.postech.object.UE;
 import kr.ac.postech.util.Util;
 import org.apache.felix.scr.annotations.*;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.onosproject.net.Device;
 import org.onosproject.net.Port;
 import org.onosproject.net.device.DeviceService;
@@ -28,12 +26,9 @@ import org.onosproject.net.device.PortStatistics;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
-import org.json.simple.parser.JSONParser;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -45,6 +40,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Skeletal ONOS application component.
@@ -66,7 +63,9 @@ public class AppComponent {
     private HashMap<String, String> hash_type;
     private static HashMap<String, HashMap<String, ArrayList<Integer>>> hash_rssi;	
     private final static int SIZE_WINDOW = 5;
-    private static JSONParser parser;
+
+    private static Pattern p;
+    private static Matcher m;
 
     /**************************************************************************
      MAX_M: the maximum # of AP
@@ -199,7 +198,6 @@ public class AppComponent {
         //To collect RSSI information
 
         hash_rssi = new HashMap<>();
-	parser = new JSONParser();
 
         try {
             ServerSocket socket_server = new ServerSocket(INT_PORT);
@@ -246,47 +244,62 @@ public class AppComponent {
                 if (str_answer != null) {
                     try {
 
-                        JSONObject jsonObject = (JSONObject) parser.parse(str_answer);
-                        String str_connectedAP = (String)jsonObject.get("AP");
-                        String str_mac = (String)jsonObject.get("MAC");
+                        String str_connectedAP = "";
+                        String str_mac = "";
+                        String str_rssis = "";
+
+                        p = Pattern.compile("\"AP\": \"[^\"]*\"");
+                        m = p.matcher(str_answer);
+                        if(m.find())
+                            str_connectedAP = m.group().split("\"")[3];
+
+                        p = Pattern.compile("\"MAC\": \"[^\"]*\"");
+                        m = p.matcher(str_answer);
+                        if(m.find())
+                            str_mac = m.group().split("\"")[3];
+
                         System.out.println("Connected AP: " + str_connectedAP);
                         System.out.println("MAC address: " + str_mac);
-						
-                        if(hash_rssi.get(str_connectedAP) == null)
-                            hash_rssi.put(str_connectedAP, new HashMap<>());
-                        JSONArray jsonArray = (JSONArray) (jsonObject.get("RSSI"));
-                        Iterator<JSONArray> iter = jsonArray.iterator();
+
+                        if(hash_rssi.get(str_mac) == null)
+                            hash_rssi.put(str_mac, new HashMap<>());
+
+                        p = Pattern.compile("\"RSSI\": \\[.*\\]");
+                        m = p.matcher(str_answer);
+                        if(m.find())
+                            str_rssis = m.group();
+                        str_rssis = str_rssis.substring(str_rssis.indexOf("[") + 1, str_rssis.length() - 1).replace("\\]", "");
                         double double_avg = 0, double_std = 0;
-						
-                        while (iter.hasNext()) {
-                            JSONArray object = (JSONArray) iter.next();
-                            String str_ap = (String) object.get(0);
-                            Integer int_rssi = Integer.parseInt((String) object.get(1));
-							
-                            if (hash_rssi.get(str_connectedAP).get(str_ap) == null) {
-                                ArrayList<Integer> list_rssi = new ArrayList<>();
-                                list_rssi.add(int_rssi);
-                                hash_rssi.get(str_connectedAP).put(str_ap, list_rssi);
-								
-                                double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
-                                double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
-                            } 
-                            else {
-                                if(hash_rssi.get(str_connectedAP).get(str_ap).size() < SIZE_WINDOW) {
-                                    hash_rssi.get(str_connectedAP).get(str_ap).add(int_rssi);
-									
-                                    double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
-                                    double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
+
+                        for(String str: str_rssis.split("\\[")) {
+                            if(!str.equals("")) {
+                                String str_ap = str.split("\"")[1];
+                                Integer int_rssi = Integer.parseInt(str.split("\"")[3]);
+
+                                if (hash_rssi.get(str_mac).get(str_ap) == null) {
+                                    ArrayList<Integer> list_rssi = new ArrayList<>();
+                                    list_rssi.add(int_rssi);
+                                    hash_rssi.get(str_mac).put(str_ap, list_rssi);
+
+                                    double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
+                                    double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                } else {
+                                    if(hash_rssi.get(str_mac).get(str_ap).size() < SIZE_WINDOW) {
+                                        hash_rssi.get(str_mac).get(str_ap).add(int_rssi);
+
+                                        double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
+                                        double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                    }
+                                    else {
+                                        hash_rssi.get(str_mac).get(str_ap).remove(0);
+                                        hash_rssi.get(str_mac).get(str_ap).add(int_rssi);
+
+                                        double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
+                                        double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                    }
                                 }
-                                else {
-                                    hash_rssi.get(str_connectedAP).get(str_ap).remove(0);
-                                    hash_rssi.get(str_connectedAP).get(str_ap).add(int_rssi);
-									
-                                    double_avg = getAVG(hash_rssi.get(str_connectedAP).get(str_ap));
-                                    double_std = getSTD(hash_rssi.get(str_connectedAP).get(str_ap), double_avg);
-                                }
+                                System.out.println(double_avg+" "+double_std);
                             }
-                            System.out.println(double_avg+" "+double_std);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
