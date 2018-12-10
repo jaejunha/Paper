@@ -49,8 +49,6 @@ import java.util.regex.Pattern;
 @Component(immediate = true)
 public class AppComponent {
 
-    //private final Logger log = LoggerFactory.getLogger(getClass());
-
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected DeviceService deviceService;
 
@@ -177,8 +175,6 @@ public class AppComponent {
 
         /**********************************************************************/
 /*
-        //Initiation
-        hash_type = new HashMap<String, String>();
 
         //To test R library
         RConnection c = null;
@@ -192,6 +188,7 @@ public class AppComponent {
         }
 */
         //To collect Bandwidth information
+        hash_type = new HashMap<String, String>();
         ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
         executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
 
@@ -457,7 +454,7 @@ public class AppComponent {
         }
     }
 
-    void printResult() {
+    public void printResult() {
         if (double_optimizedDifference == Double.MAX_VALUE)
             System.out.println("Fail to optimize");
         else {

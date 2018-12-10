@@ -29,7 +29,7 @@ mvn clean install
 
 No Test Code)  
 ```
-mvn clean install -DskipTests
+mvn clean install -Dmaven.test.skip=true
 ```
 <br>
 # Prerequisite  
