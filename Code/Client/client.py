@@ -4,6 +4,7 @@ import os
 import json
 
 str_ap = ''
+bool_handover = False
 
 def getIP():
 	f = open('server.json', 'r')
@@ -23,8 +24,13 @@ if __name__ == '__main__':
 			if str_ap != str_msg.split(' ')[1]:
 				str_ap = str_msg.split(' ')[1]
 				print str_ap
+				bool_handover = True
 				os.popen('nmcli dev wifi con '+str_ap)
 			else:
 				pass	
 		server.close()
-		time.sleep(30)
+		if bool_handover == True:
+			time.sleep(20)
+			bool_handover = False
+		else:
+			print 'sending RSSI...'
