@@ -1,20 +1,28 @@
 package kr.ac.postech.object;
 
+import kr.ac.postech.util.Util;
+
 import java.util.ArrayList;
 import java.util.Random;
 
-public class UE {
-    private double reqBitrate;
+public class UE implements Comparable<UE>{
+    private int id;
+    private int reqBitrate;
     private double reqQuality;
-    private double bitrate;
+    private int bitrate;
     private double quality;
     private int ap;
     private ArrayList<Integer> rssi;
 
-    public UE(int m){
+    public UE(){
+        reqBitrate = 0;
+    }
+
+    public UE(int id, int m){
+        this.id = id;
         Random random = new Random();
         reqBitrate = MPD.bitrates[random.nextInt(5)];
-        calQuality();
+        reqQuality = Util.calQuality(reqBitrate);
 
         rssi = new ArrayList<Integer>();
         rssi.add(0);
@@ -22,11 +30,15 @@ public class UE {
             rssi.add(-(random.nextInt(70)+30));
     }
 
-    public double getReqBitrate() {
+    public int getID(){ return id; }
+
+    public void setID(int id) { this.id = id; }
+
+    public int getReqBitrate() {
         return reqBitrate;
     }
 
-    public void setReqBitrate(double reqBitrate) {
+    public void setReqBitrate(int reqBitrate) {
         this.reqBitrate = reqBitrate;
     }
 
@@ -38,11 +50,11 @@ public class UE {
         this.reqQuality = reqQuality;
     }
 
-    public double getBitrate() {
+    public int getBitrate() {
         return bitrate;
     }
 
-    public void setBitrate(double bitrate) {
+    public void setBitrate(int bitrate) {
         this.bitrate = bitrate;
     }
 
@@ -70,9 +82,10 @@ public class UE {
         this.rssi = rssi;
     }
 
-    public void calQuality() {
-        int a = 1, b = 1;
-        reqQuality = a * Math.log(1 + b * reqBitrate);
+    @Override
+    public int compareTo(UE ue) {
+        // TODO Auto-generated method stub
+        return this.reqBitrate - ue.reqBitrate;
     }
 }
 

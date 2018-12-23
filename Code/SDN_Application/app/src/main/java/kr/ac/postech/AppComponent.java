@@ -317,8 +317,7 @@ public class AppComponent {
                     }
 
                     PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
-                    writer.println("OK");
-                    // writer.println("nmcli dev wifi con SMALL_AP");
+                    writer.println("#2: LOAD_AP2");
                     socket_client.close();
                 }
             } catch (IOException e) {
@@ -460,7 +459,7 @@ public class AppComponent {
         else {
             System.out.println("------------------------------------------");
             System.out.println("Optimized difference of total quality: " + double_optimizedDifference);
-            System.out.println("Optimized connection ¡å");
+            System.out.println("Optimized connection ï¿½ï¿½");
             for (int i = 1; i <= int_n; i++) {
                 System.out.print("UE " + i + "(" + list_optimizedBitrate.get(i) + "bps) is associated with AP ");
                 for (int j = 1; j <= int_m; j++) {
