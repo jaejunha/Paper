@@ -21,5 +21,5 @@ if __name__ == '__main__':
 		print 'Help > python proxy.py <wlan interface>' 
 	else:
 		dic_server = getIP()
-		RSSI.runRSSICollector(sys.argv[1], dic_server["SDN_RSSI"])
+		RSSI.runRSSICollector(sys.argv[1], dic_server["SDN_Collector"])
 		openServer(dic_server["Proxy"]["PORT"])
