@@ -21,7 +21,10 @@ class AsyncTask:
 			print 'Help > Please check server status'
 			socket_server.close()
 			sys.exit(1) 
-   		dic_rssi = getRSSI(self.interface, self.mac)
+   		bool_error, dic_rssi = getRSSI(self.interface, self.mac)
+		if bool_error == True:
+			socket_server.close()
+			sys.exit(1)
 		socket_server.send(dic_rssi + '\n')
 
 		bool_handover = False
@@ -63,17 +66,24 @@ def getAP(interface):
 
 def getRSSI(interface, mac):
         dic_rssi = {}
-        file_in, file_out, file_error = os.popen3('nmcli dev wifi list | grep LOAD_AP')
-        str_result = file_out.read().split('\n')
+        file_in, file_out, file_error = os.popen3("iw "+interface+" scan | egrep 'signal|LOAD_AP'")
+
+	str_result = file_out.read()	
+	if len(str_result) == 0:
+		print 'Help > Check wlan interface name'
+		return True, dic_rssi
+	
         str_ap = ''
 	str_signal = ''
-        for str_line in str_result:
-		if len(str_line) > 0:
-			p = re.compile("'.*'")
+        for str_line in str_result.split('\n'):
+		if str_line.find('LOAD_AP') >= 0:
+			p = re.compile("LOAD_AP\d")
 			m = p.search(str_line)
-			str_ap = m.group().replace("'","")
-			p = re.compile('[^:\d]\d\d[^:\d]')
-			m = p.findall(str_line)
-			str_signal = m[1].strip()
+			str_ap = m.group().strip()
 			dic_rssi[str_ap] = str_signal
-	return json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(interface), "MAC": mac, "RSSI": list(dic_rssi.items())})
+		else:
+			p = re.compile('-\d+[^.]')
+			m = p.search(str_line)
+			if m:
+				str_signal = m.group().strip()
+	return False, json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(interface), "MAC": mac, "RSSI": list(dic_rssi.items())})
