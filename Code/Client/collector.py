@@ -6,8 +6,6 @@ import sys
 import socket
 import re
 
-bool_handover = False
-
 class AsyncTask:
 	def __init__(self, interface, mac, ip, port):
 		self.interface = interface
@@ -23,13 +21,10 @@ class AsyncTask:
 			print 'Help > Please check server status'
 			socket_server.close()
 			sys.exit(1) 
-   		bool_error, dic_rssi = getRSSI(self.interface, self.mac)
-	        if bool_error == True:
-			socket_server.close()
-		        sys.exit(1)
+   		dic_rssi = getRSSI(self.interface, self.mac)
 		socket_server.send(dic_rssi + '\n')
 
-		global bool_handover
+		bool_handover = False
 		str_currentAP = getAP(self.interface)
 		str_msg = socket_server.recv(65535)
                 int_command = int(str_msg[1])
@@ -42,6 +37,7 @@ class AsyncTask:
                         else:
                                 pass    
                 socket_server.close()
+
                 if bool_handover == True:
                         bool_handover = False
 			threading.Timer(20, self.operateMachine).start()
@@ -57,7 +53,7 @@ def run(interface, server):
 def getMAC(interface):
 	file_in, file_out, file_error = os.popen3('ifconfig ' + interface)
 	str_line = file_out.read().split('\n')[0]
-	p = re.compile('[a-f0-9]{0,2}:.{0,2}:.*:.*:.*:.{0,2}')
+	p = re.compile('[a-f\d]{0,2}:.{0,2}:.*:.*:.*:.{0,2}')
 	m = p.search(str_line)
 	return m.group().replace(':','').rjust(16,'0')
 
@@ -67,25 +63,17 @@ def getAP(interface):
 
 def getRSSI(interface, mac):
         dic_rssi = {}
-        file_in, file_out, file_error = os.popen3('iwlist ' + interface + ' scan')
-        if file_error.read():
-		print interface
-                print 'Help > Check wlan interface name'
-                return True, dic_rssi
-        else:
-                str_result = file_out.read().split('\n')
-                str_ap = ''
-		str_signal = ''
-                for str_line in str_result:
-			if str_line.find('ESSID:') >= 0 and str_line.find('LOAD_AP') >= 0:
-				p = re.compile('".*"')
-				m = p.search(str_line)
-				str_ap = m.group().replace('"','')
-				dic_rssi[str_ap] = str_signal
-
-			if str_line.find('Signal level') >= 0:
-				p = re.compile('-[0-9]*')
-				m = p.search(str_line)
-				str_signal = m.group().strip()
-		
-                return False, json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(interface), "MAC": mac, "RSSI": list(dic_rssi.items())})
+        file_in, file_out, file_error = os.popen3('nmcli dev wifi list | grep LOAD_AP')
+        str_result = file_out.read().split('\n')
+        str_ap = ''
+	str_signal = ''
+        for str_line in str_result:
+		if len(str_line) > 0:
+			p = re.compile("'.*'")
+			m = p.search(str_line)
+			str_ap = m.group().replace("'","")
+			p = re.compile('[^:\d]\d\d[^:\d]')
+			m = p.findall(str_line)
+			str_signal = m[1].strip()
+			dic_rssi[str_ap] = str_signal
+	return json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(interface), "MAC": mac, "RSSI": list(dic_rssi.items())})
