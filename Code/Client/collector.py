@@ -7,7 +7,6 @@ import socket
 import re
 
 bool_handover = False
-str_currentAP = ''
 
 class AsyncTask:
 	def __init__(self, interface, mac, ip, port):
@@ -30,15 +29,16 @@ class AsyncTask:
 		        sys.exit(1)
 		socket_server.send(dic_rssi + '\n')
 
-		global bool_handover, str_currentAP
+		global bool_handover
+		str_currentAP = getAP(self.interface)
 		str_msg = socket_server.recv(65535)
                 int_command = int(str_msg[1])
                 if int_command == 2:
-                        if str_currentAP != str_msg.split(' ')[1]:
-                                str_currentAP = str_msg.split(' ')[1]
-                                print str_currentAP.strip()
+                        if str_currentAP != str_msg.split(' ')[1].strip():
+                                str_currentAP = str_msg.split(' ')[1].strip()
+                                print str_currentAP
                                 bool_handover = True
-                                os.popen('nmcli dev wifi con '+str_currentAP.strip())
+                                os.popen('nmcli dev wifi con '+str_currentAP)
                         else:
                                 pass    
                 socket_server.close()
@@ -61,12 +61,9 @@ def getMAC(interface):
 	m = p.search(str_line)
 	return m.group().replace(':','').rjust(16,'0')
 
-def getAP():
-        file_in, file_out, file_error = os.popen3('iwconfig')
-        str_line = file_out.read()
-        p = re.compile('".*"')
-        m = p.search(str_line)
-        return m.group().replace('"','')
+def getAP(interface):
+        file_in, file_out, file_error = os.popen3('iwgetid ' + interface + ' -r')
+        return file_out.read().strip() 
 
 def getRSSI(interface, mac):
         dic_rssi = {}
@@ -80,13 +77,15 @@ def getRSSI(interface, mac):
                 str_ap = ''
 		str_signal = ''
                 for str_line in str_result:
-			if str_line.find('ESSID:') >= 0:
+			if str_line.find('ESSID:') >= 0 and str_line.find('LOAD_AP') >= 0:
 				p = re.compile('".*"')
 				m = p.search(str_line)
 				str_ap = m.group().replace('"','')
 				dic_rssi[str_ap] = str_signal
+
 			if str_line.find('Signal level') >= 0:
 				p = re.compile('-[0-9]*')
 				m = p.search(str_line)
 				str_signal = m.group().strip()
-                return False, json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(), "MAC": mac, "RSSI": list(dic_rssi.items())})
+		
+                return False, json.dumps({"REQ": 360, "SUP": 240, "AP": getAP(interface), "MAC": mac, "RSSI": list(dic_rssi.items())})
