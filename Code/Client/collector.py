@@ -43,10 +43,9 @@ class AsyncTask:
 
                 if bool_handover == True:
                         bool_handover = False
-			threading.Timer(20, self.operateMachine).start()
-                else:
-                        print 'sending RSSI...'
-			threading.Timer(5, self.operateMachine).start()
+                        time.sleep(15)
+                        os.popen('dhclient br0')
+		threading.Timer(5, self.operateMachine).start()
 	
 def run(interface, server):
 	str_mac = getMAC(interface)
