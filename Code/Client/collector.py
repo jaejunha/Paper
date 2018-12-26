@@ -44,6 +44,8 @@ class AsyncTask:
                 if bool_handover == True:
                         bool_handover = False
                         time.sleep(15)
+			os.popen('ifconfig wlan0 0')
+			os.popen('ifconfig br0 0')
                         os.popen('dhclient br0')
 		threading.Timer(5, self.operateMachine).start()
 	
