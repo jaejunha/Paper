@@ -59,7 +59,8 @@ public class AppComponent {
     private final int INT_PORT = 7777;
 
     private HashMap<String, String> hash_type;
-    private static HashMap<String, HashMap<String, ArrayList<Integer>>> hash_rssi;	
+    private static HashMap<String, HashMap<String, ArrayList<Integer>>> hash_rssi;
+    private static HashMap<String, ArrayList<Double>> hash_bandwidth;
     private final static int SIZE_WINDOW = 5;
 
     private static Pattern p;
@@ -125,7 +126,7 @@ public class AppComponent {
     protected void activate() {
 
         // To simulate, insert random values
-        /**********************************************************************/
+        /*
         int_n = 4;
         int_m = 3;
         int_t = 20;
@@ -173,7 +174,7 @@ public class AppComponent {
 
         printResult();
 
-        /**********************************************************************/
+        */
 /*
 
         //To test R library
@@ -188,7 +189,9 @@ public class AppComponent {
         }
 */
         //To collect Bandwidth information
-        hash_type = new HashMap<String, String>();
+        hash_type = new HashMap<>();
+        hash_bandwidth = new HashMap<>();
+
         ScheduledExecutorService executor_monitor = Executors.newSingleThreadScheduledExecutor();
         executor_monitor.scheduleAtFixedRate(this::monitorTraffic, 1, UNIT_T, TimeUnit.SECONDS);
 
@@ -196,6 +199,7 @@ public class AppComponent {
 
         hash_rssi = new HashMap<>();
 
+/*
         try {
             ServerSocket socket_server = new ServerSocket(INT_PORT);
             ExecutorService executor_pool = Executors.newFixedThreadPool(MAX_N);
@@ -204,6 +208,7 @@ public class AppComponent {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        */
     }
 
     @Deactivate
@@ -213,15 +218,44 @@ public class AppComponent {
     private void monitorTraffic() {
         Iterable<Device> devices = deviceService.getDevices();
         for (Device device : devices) {
-            Port port = deviceService.getPorts(device.id()).get(1);
-            String str_portName = port.annotations().value("portName");
-            if (str_portName.equals("ap0"))
-                hash_type.put(device.id().toString(), "AP");
-            else
-                hash_type.put(device.id().toString(), "UE");
-            System.out.println(hash_type.get(device.id().toString()));
-            for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id()))
-                System.out.println(device.id() + "\'s data: " + (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K) + "Kbps");
+            try {
+                Port port = deviceService.getPorts(device.id()).get(1);
+                String str_portName = port.annotations().value("portName");
+                if (str_portName.equals("ap0"))
+                    hash_type.put(device.id().toString(), "AP");
+                else
+                    hash_type.put(device.id().toString(), "UE");
+
+                System.out.print(hash_type.get(device.id().toString()) + "(");
+                double double_bandwidth, double_avg = 0;
+                String str_mac;
+                for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id())) {
+                    str_mac = device.id().toString();
+                    double_bandwidth = (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K);
+
+                    if(hash_bandwidth.get(str_mac) == null) {
+                        ArrayList<Double> list_bandwidth = new ArrayList<>();
+                        list_bandwidth.add(double_bandwidth);
+                        hash_bandwidth.put(str_mac, list_bandwidth);
+
+                        double_avg = double_bandwidth;
+                    }else{
+                        if(hash_bandwidth.get(str_mac).size() < SIZE_WINDOW){
+                            hash_bandwidth.get(str_mac).add(double_bandwidth);
+
+                            double_avg = getBandwidthAVG(hash_bandwidth.get(str_mac));
+                        }else{
+                            hash_bandwidth.get(str_mac).remove(0);
+                            hash_bandwidth.get(str_mac).add(double_bandwidth);
+
+                            double_avg = getBandwidthAVG(hash_bandwidth.get(str_mac));
+                        }
+                    }
+                    System.out.println(str_mac + "): " + double_avg + "Kbps");
+                }
+            }catch(java.lang.ArrayIndexOutOfBoundsException e){
+                // ignore
+            }
         }
     }
 
@@ -280,7 +314,8 @@ public class AppComponent {
                         if(m.find())
                             str_rssis = m.group();
                         str_rssis = str_rssis.substring(str_rssis.indexOf("[") + 1, str_rssis.length() - 1).replace("\\]", "");
-                        double double_avg = 0, double_std = 0;
+                        double double_avg = 0;
+                        //double double_std = 0;
 
                         for(String str: str_rssis.split("\\[")) {
                             if(!str.equals("")) {
@@ -292,33 +327,36 @@ public class AppComponent {
                                     list_rssi.add(int_rssi);
                                     hash_rssi.get(str_mac).put(str_ap, list_rssi);
 
-                                    double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
-                                    double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                    double_avg = int_rssi;
+                                    //double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
                                 } else {
                                     if(hash_rssi.get(str_mac).get(str_ap).size() < SIZE_WINDOW) {
                                         hash_rssi.get(str_mac).get(str_ap).add(int_rssi);
 
-                                        double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
-                                        double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                        double_avg = getRSSIAVG(hash_rssi.get(str_mac).get(str_ap));
+                                        //double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
                                     }
                                     else {
                                         hash_rssi.get(str_mac).get(str_ap).remove(0);
                                         hash_rssi.get(str_mac).get(str_ap).add(int_rssi);
 
-                                        double_avg = getAVG(hash_rssi.get(str_mac).get(str_ap));
-                                        double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
+                                        double_avg = getRSSIAVG(hash_rssi.get(str_mac).get(str_ap));
+                                        //double_std = getSTD(hash_rssi.get(str_mac).get(str_ap), double_avg);
                                     }
                                 }
-                                System.out.println(double_avg+" "+double_std);
+                                //System.out.println(double_avg+" "+double_std);
+                                System.out.println(double_avg);
                             }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
+                    /*
                     PrintWriter writer = new PrintWriter(socket_client.getOutputStream(), true);
                     writer.println("#2: LOAD_AP2");
+                    */
                     socket_client.close();
+
                 }
             } catch (IOException e) {
                 // TODO Auto-generated catch block
@@ -327,17 +365,23 @@ public class AppComponent {
         }
     }
 
-    public static double getAVG(ArrayList<Integer> list_rssi) {
+    public static double getBandwidthAVG(ArrayList<Double> list_bandwidth) {
         double double_sum = 0;
-        for(Integer rssi: list_rssi) {
+        for(Double bandwidth: list_bandwidth)
+            double_sum+=bandwidth;
+
+        return double_sum / list_bandwidth.size();
+    }
+
+    public static double getRSSIAVG(ArrayList<Integer> list_rssi) {
+        double double_sum = 0;
+        for(Integer rssi: list_rssi)
             double_sum+=rssi;
-            System.out.print(rssi+" ");
-        }
 		
         return double_sum / list_rssi.size();
     }
 	
-    public static double getSTD(ArrayList<Integer> list_rssi, double double_avg) {
+    public static double getRSSISTD(ArrayList<Integer> list_rssi, double double_avg) {
         double double_sum = 0;
         for(Integer rssi: list_rssi)
             double_sum+=(rssi-double_avg)*(rssi-double_avg);
