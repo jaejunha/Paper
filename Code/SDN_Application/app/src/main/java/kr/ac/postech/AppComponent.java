@@ -231,7 +231,11 @@ public class AppComponent {
                 String str_mac;
                 for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id())) {
                     str_mac = device.id().toString();
-                    double_bandwidth = (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K);
+
+                    if (str_portName.equals("ap0"))
+                        double_bandwidth = (double) statistics.bytesSent() * UNIT_B / (UNIT_T * UNIT_K);
+                    else
+                        double_bandwidth = (double) statistics.bytesReceived() * UNIT_B / (UNIT_T * UNIT_K);
 
                     if(hash_bandwidth.get(str_mac) == null) {
                         ArrayList<Double> list_bandwidth = new ArrayList<>();
