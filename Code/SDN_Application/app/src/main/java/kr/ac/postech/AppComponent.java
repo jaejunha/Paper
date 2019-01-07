@@ -59,6 +59,7 @@ public class AppComponent {
     private final int INT_PORT = 7777;
 
     private HashMap<String, String> hash_type;
+    private static HashMap<String, String> hash_connection;
     private static HashMap<String, HashMap<String, ArrayList<Integer>>> hash_rssi;
     private static HashMap<String, ArrayList<Double>> hash_bandwidth;
     private final static int SIZE_WINDOW = 5;
@@ -198,6 +199,7 @@ public class AppComponent {
         //To collect RSSI information
 
         hash_rssi = new HashMap<>();
+        hash_connection = new HashMap<>();
 
 /*
         try {
@@ -219,6 +221,9 @@ public class AppComponent {
         Iterable<Device> devices = deviceService.getDevices();
         for (Device device : devices) {
             try {
+                //check connection or disconnection
+                if(deviceService.isAvailable(device.id()) == false)
+                    continue;
                 Port port = deviceService.getPorts(device.id()).get(1);
                 String str_portName = port.annotations().value("portName");
                 if (str_portName.equals("ap0"))
@@ -226,7 +231,6 @@ public class AppComponent {
                 else
                     hash_type.put(device.id().toString(), "UE");
 
-                System.out.print(hash_type.get(device.id().toString()) + "(");
                 double double_bandwidth, double_avg = 0;
                 String str_mac;
                 for (PortStatistics statistics : deviceService.getPortDeltaStatistics(device.id())) {
@@ -255,6 +259,7 @@ public class AppComponent {
                             double_avg = getBandwidthAVG(hash_bandwidth.get(str_mac));
                         }
                     }
+                    System.out.print(hash_type.get(device.id().toString()) + "(");
                     System.out.println(str_mac + "): " + double_avg + "Kbps");
                 }
             }catch(java.lang.ArrayIndexOutOfBoundsException e){
@@ -304,6 +309,8 @@ public class AppComponent {
                         m = p.matcher(str_answer);
                         if(m.find())
                             str_mac = m.group().split("\"")[3];
+
+                        hash_connection.put(str_mac, str_connectedAP);
 
                         System.out.println("requested bitrate: " + str_bitrate_req);
                         System.out.println("supported bitrate: " + str_bitrate_sup);
