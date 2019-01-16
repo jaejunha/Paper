@@ -30,15 +30,18 @@ class AsyncTask:
 		bool_handover = False
 		str_currentAP = getAP(self.interface)
 		str_msg = socket_server.recv(65535)
-                int_command = int(str_msg[1])
-                if int_command == 2:
-                        if str_currentAP != str_msg.split(' ')[1].strip():
-                                str_currentAP = str_msg.split(' ')[1].strip()
-                                print str_currentAP
-                                bool_handover = True
-                                os.popen('nmcli dev wifi con '+str_currentAP)
-                        else:
-                                pass    
+		try:
+	                int_command = int(str_msg[1])
+        	        if int_command == 2:
+                	        if str_currentAP != str_msg.split(' ')[1].strip():
+                        	        str_currentAP = str_msg.split(' ')[1].strip()
+                                	print str_currentAP
+	                                bool_handover = True
+        	                        os.popen('nmcli dev wifi con '+str_currentAP)
+                	        else:
+                        	        pass    
+		except:
+			print "wait..."
                 socket_server.close()
 
                 if bool_handover == True:
