@@ -20,8 +20,9 @@ class AsyncTask:
 		except :
 			print 'Help > Please check server status'
 			socket_server.close()
-			sys.exit(1) 
-   		bool_error, dic_rssi = getRSSI(self.interface, self.mac)
+   		        threading.Timer(5, self.operateMachine).start()
+
+		bool_error, dic_rssi = getRSSI(self.interface, self.mac)
 		if bool_error == True:
 			socket_server.close()
 			sys.exit(1)
@@ -29,8 +30,8 @@ class AsyncTask:
 
 		bool_handover = False
 		str_currentAP = getAP(self.interface)
-		str_msg = socket_server.recv(65535)
-		try:
+          	try:
+		     	str_msg = socket_server.recv(65535)
 	                int_command = int(str_msg[1])
         	        if int_command == 2:
                 	        if str_currentAP != str_msg.split(' ')[1].strip():
@@ -73,9 +74,9 @@ def getRSSI(interface, mac):
         file_in, file_out, file_error = os.popen3("iw "+interface+" scan | egrep 'signal|LOAD_AP'")
 
 	str_result = file_out.read()	
-	if len(str_result) == 0:
-		print 'Help > Check wlan interface name'
-		return True, dic_rssi
+#	if len(str_result) == 0:
+#		print 'Help > Check wlan interface name'
+#		return True, dic_rssi
 	
         str_ap = ''
 	str_signal = ''
