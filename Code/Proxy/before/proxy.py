@@ -10,14 +10,14 @@ def getIP():
         f.close()
 	return json_data["Server"] 
 
-def openServer(port):
-	file_in, file_out, file_error = os.popen3('iwconfig ' + sys.argv[1])
-	if file_error.read().find("No such device") < 0:
-		HTTP.runServer(port)	
+def openServer(proxy, optimizer):
+        file_in, file_out, file_error = os.popen3('iwconfig ' + sys.argv[1])
+        if file_error.read().find("No such device") < 0:
+                HTTP.runServer(proxy, optimizer)
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
 		print 'Help > python proxy.py <wlan interface>' 
 	else:
 		dic_server = getIP()
-		openServer(dic_server["Proxy"]["PORT"])
+		openServer(dic_server["Proxy"], dic_server["SDN_Optimizer"])

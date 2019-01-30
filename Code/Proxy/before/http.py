@@ -4,12 +4,13 @@ import re
 import socket
 
 p = re.compile(r'[0-9]+kbit')
+dic_optimizer = None
 
 def changeBitrate(str_url):
 	if p.search(str_url):
 		str_before = p.search(str_url).group()
 		socket_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		socket_server.connect(("141.223.65.54",7777))
+		socket_server.connect((dic_optimizer["IP"],int(dic_optimizer["PORT"])))
 		socket_server.send(str_before.split('kbit')[0]+"\n")
 		str_msg = socket_server.recv(1023)
 		str_after = str_msg.split(' ')[1].strip()
@@ -36,5 +37,7 @@ class Handler(BaseHTTPRequestHandler):
 		except:
 			pass
 
-def runServer(port):
+def runServer(proxy, optimizer):
+        global dic_optimizer
+        dic_optimizer = optimizer
 	HTTPServer(('',int(port)), Handler).serve_forever()
