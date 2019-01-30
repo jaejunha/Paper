@@ -40,4 +40,4 @@ class Handler(BaseHTTPRequestHandler):
 def runServer(proxy, optimizer):
         global dic_optimizer
         dic_optimizer = optimizer
-	HTTPServer(('',int(port)), Handler).serve_forever()
+	HTTPServer(('',int(proxy["PORT"])), Handler).serve_forever()
