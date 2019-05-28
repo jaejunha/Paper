@@ -6,8 +6,8 @@ import http as HTTP
 
 def getIP():
 	f = open('server.json', 'r')
-        json_data = json.load(f)
-        f.close()
+	json_data = json.load(f)
+	f.close()
 	return json_data["Server"] 
 
 def openServer(proxy, optimizer):
@@ -17,7 +17,7 @@ def openServer(proxy, optimizer):
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
-		print 'Help > python proxy.py <wlan interface>' 
+		print('Help > python proxy.py <wlan interface>')
 	else:
 		dic_server = getIP()
 		openServer(dic_server["Proxy"], dic_server["SDN_Application"])
