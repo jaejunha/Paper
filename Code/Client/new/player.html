@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+        <head>
+                <title>Dash.js</title>
+                <style>
+                        video {
+                                width: 50%;
+                                height: 50%;
+                        }
+                </style>
+        </head>
+        <body>
+                <div>
+                        Select the bitrate &nbsp;
+                        <select name="bitrate">
+                                <option value="A">A</option>
+                                <option value="B" selected="selected">B</option>
+                                <option value="C">C</option>
+                        </select>
+                        <br>
+                        <video data-dashjs-player autoplay src="mpd 경로" controls>
+                        </video>
+                </div>
+                <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+        </body>
+</html>
