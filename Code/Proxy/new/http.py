@@ -1,20 +1,35 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 import urllib2
 import re
+import os
 from socket import *
 
 p = re.compile(r'[0-9]+kbit')
 dic_application = None
+str_mac = None
+
+def getMac(interface):
+	file_in, file_out, file_error = os.popen3('ifconfig ' + interface)
+	str_line = file_out.read().split('\n')[0]
+	p = re.compile('[a-f\d]{0,2}:.{0,2}:.*:.*:.*:.{0,2}')
+	m = p.search(str_line)
+	return m.group().replace(':','').rjust(16,'0')
+
 
 def changeBitrate(str_url):
 	if p.search(str_url):
 		str_raw = p.search(str_url).group()
-		str_before = str_raw
+		str_before = str_after = str_raw
+		str_after += 'kbit'
 		
 		socket_client = socket(AF_INET, SOCK_STREAM)
 		socket_client.connect((dic_application["IP"],int(dic_application["PORT"])))
-		str_raw = socket_client.recv(1024).split(' ')
-		str_after = str_raw[0].split('/')[0]+'kbit'
+		str_msgs = socket_client.recv(1024).split(' ')
+		for str_msg in str_msgs:
+			if str_msg.split('/')[0] == str_mac:
+				str_after = str_msg.split('/')[1] + 'kbit'
+				break
+				
 		print("\nAdusted: "+str_after)
 		socket_client.close()
 		return str_url.replace(str_before, str_after)
@@ -35,6 +50,7 @@ class Handler(BaseHTTPRequestHandler):
 			str_url = changeBitrate(self.path)
 		else:
 			str_url = self.path
+			print()
 		self._set_headers()
 		try:
 			data = urllib2.urlopen(str_url).read()
@@ -44,6 +60,7 @@ class Handler(BaseHTTPRequestHandler):
 			pass
 
 def runServer(proxy, application):
-	global dic_application
+	global dic_application, str_mac
 	dic_application = application
+	str_mac = "of:" + getMac('wlan0')
 	HTTPServer(('',int(proxy["PORT"])), Handler).serve_forever()
