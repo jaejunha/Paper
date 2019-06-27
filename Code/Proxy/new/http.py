@@ -21,11 +21,9 @@ def changeBitrate(str_url):
 		str_raw = p.search(str_url).group()
 		str_before = str_after = str_raw
 		str_after += 'kbit'
-		print("wello")	
 		socket_client = socket(AF_INET, SOCK_STREAM)
 		socket_client.connect((dic_application["IP"],int(dic_application["PORT"])))
 		str_msgs = socket_client.recv(1024).split(' ')
-		print("hello")
 		for str_msg in str_msgs:
 			if str_msg.split('/')[0] == str_mac:
 				str_after = str_msg.split('/')[1] + 'kbit'
