@@ -13,8 +13,9 @@ class AsyncTask:
 		self.mac = mac
 		self.ip = ip
 		self.port = port
+		self.ap = getAP(self.interface)
 		
-		print('current AP', getAP(self.interface))
+		print('current AP', self.ap)
 	
 	def operateMachine(self):
 		while True:
@@ -26,11 +27,19 @@ class AsyncTask:
 				continue
 			
 			
-			str_msgs = client.recv(1024).split(' ')[self.no]
+			str_msgs = client.recv(1024).split(' ')
 			for str_msg in str_msgs:
 				if str_msg.split('/')[0] == "of:" + self.mac:
-					os.popen('nmcli dev wifi con '+raw.split('/')[1])
-					print('current AP', str_msg.split('/')[1])
+					ap = str_msg.split('/')[1]
+
+					if ap == self.ap:
+						break
+					
+					print("AP will be changed")
+
+					os.popen('nmcli dev wifi con ' + ap)
+					print('current AP', ap)
+					self.ap = ap
 					break
 			time.sleep(0.5)
 	
