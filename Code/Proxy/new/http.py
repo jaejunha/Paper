@@ -20,15 +20,18 @@ def changeBitrate(str_url):
 	if p.search(str_url):
 		str_raw = p.search(str_url).group()
 		str_before = str_after = str_raw
-		str_after += 'kbit'
-		socket_client = socket(AF_INET, SOCK_STREAM)
-		socket_client.connect((dic_application["IP"],int(dic_application["PORT"])))
-		str_msgs = socket_client.recv(1024).split(' ')
-		for str_msg in str_msgs:
-			if str_msg.split('/')[0] == str_mac:
-				str_after = str_msg.split('/')[1] + 'kbit'
-				break
-				
+		
+		try:
+			socket_client = socket(AF_INET, SOCK_STREAM)
+			socket_client.connect((dic_application["IP"],int(dic_application["PORT"])))
+			str_msgs = socket_client.recv(1024).split(' ')
+			for str_msg in str_msgs:
+				if str_msg.split('/')[0] == str_mac:
+					str_after = str_msg.split('/')[1] + 'kbit'
+					break
+		except:
+			pass
+
 		print("\nAdusted: "+str_after)
 		socket_client.close()
 		return str_url.replace(str_before, str_after)
