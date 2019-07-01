@@ -8,30 +8,44 @@ import re
 from socket import *
 
 class AsyncTask:
-	def __init__(self, interface, no, mac, ip, port):
+	def __init__(self, interface, mac, ip, port):
 		self.interface = interface
-		self.no = no
 		self.mac = mac
 		self.ip = ip
 		self.port = port
+		self.ap = getAP(self.interface)
 		
-		print('current AP', getAP(self.interface))
+		print('current AP', self.ap)
 	
 	def operateMachine(self):
 		while True:
 			client = socket(AF_INET, SOCK_STREAM)
-			client.connect((self.ip, self.port))
-			raw = client.recv(1024).split(' ')[self.no]
-			if raw.split('/')[1] != getAP(self.interface):
-				os.popen('nmcli dev wifi con '+raw.split('/')[1])
-				print('current AP', raw.split('/')[1])
-			else:
-				pass
+			try:
+				client.connect((self.ip, self.port))
+			except:
+				time.sleep(0.5)
+				continue
+			
+			
+			str_msgs = client.recv(1024).split(' ')
+			for str_msg in str_msgs:
+				if str_msg.split('/')[0] == "of:" + self.mac:
+					ap = str_msg.split('/')[1]
+
+					if ap == self.ap:
+						break
+					
+					print("AP will be changed")
+
+					os.popen('nmcli dev wifi con ' + ap)
+					print('current AP', ap)
+					self.ap = ap
+					break
 			time.sleep(0.5)
 	
-def run(interface, no, server):
+def run(interface, server):
 	str_mac = getMAC(interface)
-	at = AsyncTask(interface, no, str_mac, server["IP"], int(server["PORT"]))
+	at = AsyncTask(interface, str_mac, server["IP"], int(server["PORT"]))
 	at.operateMachine()
 
 def getMAC(interface):
