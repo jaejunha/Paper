@@ -57,8 +57,8 @@ class Handler(BaseHTTPRequestHandler):
 			print('abc')
 			pass
 
-def runServer(proxy, application):
+def runServer(proxy, application, interface):
 	global dic_application, str_mac
 	dic_application = application
-	str_mac = "of:" + getMac('wlan0')
+	str_mac = "of:" + getMac(interface)
 	HTTPServer(('',int(proxy["PORT"])), Handler).serve_forever()

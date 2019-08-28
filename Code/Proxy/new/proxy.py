@@ -13,7 +13,7 @@ def getIP():
 def openServer(proxy, optimizer):
         file_in, file_out, file_error = os.popen3('iwconfig ' + sys.argv[1])
         if file_error.read().find("No such device") < 0:
-                HTTP.runServer(proxy, optimizer)
+                HTTP.runServer(proxy, optimizer, sys.argv[1])
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
