@@ -10,14 +10,12 @@ import utility as Util
 """
 def train_simulation(data):
 	print("Training mode")
-	pass
 
 """
 재생 모드
 """
 def test_simulation(data):
 	print("Test mode")
-	pass
 
 if __name__ == "__main__":
 
