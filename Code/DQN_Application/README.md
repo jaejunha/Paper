@@ -10,7 +10,14 @@
 - **PSNR** can be expressed using **bitrate**  
   - PSNR(r) = 6.4157 * log(rate) + 22.27  
   - derived from Excel program
-  
+
+# model.py  
+I used below code for model  
+```
+https://github.com/golbin/TensorFlow-Tutorials/tree/master/12 - DQN
+```
+
+<br>
 
 # Reference  
 
