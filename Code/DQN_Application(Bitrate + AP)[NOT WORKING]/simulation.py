@@ -39,7 +39,7 @@ class Simulation:
 		
 		# state 및 구성 정보 초기화
 
-		self.state = np.zeros((self.NUM_UE, self.NUM_AP, self.NUM_RATE + 1))
+		self.state = np.zeros((self.NUM_AP, self.NUM_RATE + 1))
 		self.info = np.zeros((self.NUM_UE, self.NUM_AP, SIZE_INFO))
 		
 		# 연결 가능한 UE-AP 및 이용 가능한 자원 설정
@@ -92,13 +92,21 @@ class Simulation:
 
 	def make_state(self):
 		
-		# 요구하는 bitrate를 다 받는다고 가정하고 state에 timeslot 값 삽입
-		for ue in range(self.NUM_UE):
-			for ap in range(self.NUM_AP):
-				if self.info[ue][ap][CONST_CONNECTABLE]:
-					for rate in range(self.NUM_RATE):
+		for ap in range(self.NUM_AP):
+			self.state[ap][INDEX_TIMESLOT] = self.VAL_TIMESLOT
+
+	def update_state(self, ue):
+		
+		for ap in range(self.NUM_AP):
+			if self.info[ue][ap][CONST_CONNECTABLE]:
+				max = self.info[ue][ap][CONST_REQUEST]
+				for rate in range(self.NUM_RATE):
+					if rate > max:
+						self.state[ap][rate + 1] = self.VAL_TIMESLOT
+					else:
 						bitrate = self.list_rate[rate]
-						self.state[ue][ap][rate + 1] = bitrate / self.info[ue][ap][CONST_AVAILABLE]
+						self.state[ap][rate + 1] = bitrate / self.info[ue][ap][CONST_AVAILABLE]
+
 	def step(self, ue, action):
 
 		ap = int(action / self.NUM_RATE)
@@ -109,25 +117,22 @@ class Simulation:
 
 		rate_index = int(action % self.NUM_RATE)
 
+		# over되는 bitrate 선택할 경우
 		if rate_index > self.info[ue][ap][CONST_REQUEST]:
-			rate_index = int(self.info[ue][ap][CONST_REQUEST])
-
-		# Action에 해당되는 AP의 Timeslot 계산
-		sum_timeslot = 0
-		for i in range(self.NUM_UE):
-			sum_timeslot += self.state[i][ap][INDEX_TIMESLOT]
+			return 0, True
 
 		# Timeslot이 over될 경우
-		if self.state[ue][ap][rate_index + 1] + sum_timeslot > self.VAL_TIMESLOT:
+		if self.state[ap][INDEX_TIMESLOT] - self.state[ap][rate_index + 1] < 0:
 			return  0, True
 		
 		self.info[ue][ap][CONST_SUPPORT] = rate_index
-		self.state[ue][ap][INDEX_TIMESLOT] = self.state[ue][ap][rate_index + 1]
+		self.state[ap][INDEX_TIMESLOT] -= self.state[ap][rate_index + 1]
 
 		rate_support = self.list_rate[rate_index]
 		rate_request = self.list_rate[int(self.info[ue][ap][CONST_REQUEST])]
 
-		diff = 1 - (self.get_PSNR(rate_request) - self.get_PSNR(rate_support)) / self.get_PSNR(rate_request)
+		# diff = 1 - (self.get_PSNR(rate_request) - self.get_PSNR(rate_support)) / self.get_PSNR(rate_request)
+		diff = 1 - (rate_request - rate_support) / rate_request
 
 		# PSNR 차이 리턴
 		return diff, False

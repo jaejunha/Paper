@@ -34,9 +34,6 @@ CONST_AVAILABLE = 1
 CONST_REQUEST = 2
 CONST_SUPPORT = 3
 
-# Time slot 인덱스
-SUM_TIMESLOT = 0
-
 """
 학습 모드
 """
@@ -77,11 +74,15 @@ def train_simulation(data):
 		# UE 차례로 AP에 할당
 		for ue in range(data['NUM_UE']):
 			
+			simulation.update_state(ue)
+
 			if np.random.rand() < epsilon:
-				action = np.random.randint(data['NUM_AP'] * data['NUM_RATE'] )
+				action = np.random.randint(data['NUM_AP'] * data['NUM_RATE'])
 			else:
 				action = network.get_action()
 			
+			print(action)
+
 			epsilon -= 1 / DELTA_EPSILON
 
 			diff, error = simulation.step(ue, action)
@@ -147,7 +148,7 @@ def test_simulation(data):
 
 		total_reward = 0
 	
-		before_reward = 0
+		before_diff = 0
 
 		simulation.reset()
 		simulation.make_state()
@@ -160,11 +161,16 @@ def test_simulation(data):
 			action = network.get_action()
 			list_connection[action].append(ue)			
 
-			fairness, error = simulation.step(ue, action)
-			reward = fairness - before_reward
-			before_reward = fairness
+			diff, error = simulation.step(ue, action)
 
-			total_reward += reward
+			# 차이를 normalized함
+			if ue == 0:
+				reward = diff
+			else:
+				reward = diff - before_diff / ue
+	
+			before_diff += diff
+			total_reward = before_diff
 
 			if error:
 				network.remember(simulation.state, action, reward, True)
@@ -173,22 +179,22 @@ def test_simulation(data):
 
 			if error:
 				break
+		
+		if error:
+			print("Error occurs!")
+			continue
 	
 		print()
-		print("Fairness:", total_reward)
+		print("Difference:", total_reward)
 		print()
-		print("== Before adjustment ==")
+		print("== Timeslot ==")
 		for ap in range(data['NUM_AP']):
-			print("AP %d Timeslot: %.2f" % (ap, simulation.state[SUM_TIMESLOT][ap]))
+			# print("AP %d Timeslot: %.2f" % (ap, simulation.state[SUM_TIMESLOT][ap]))
 			print("Connection:", end = " ")
 			for ue in list_connection[ap]:
 				print("UE %d(%dkbps)" % (ue, data['LIST_RATE'][int(simulation.info[ue][ap][CONST_REQUEST])]), end = " ")
 			print()
-		
-			# AP에 할당된 Timeslot이 허용 Timeslot보다 넘치는 경우
-			if simulation.state[SUM_TIMESLOT][ap] > data['VAL_TIMESLOT']:
-				simulation.adjust_bitrate(ap, list_connection[ap])
-		
+		"""
 		print()
 
 		total_dqn_psnr = 0
@@ -215,6 +221,7 @@ def test_simulation(data):
 		print("DQN\tPSNR: %.2f" % (total_dqn_psnr / data['NUM_UE']))
 		print("Optimal\tPSNR: %.2f" % (simulation.solve_optimal() / data['NUM_UE']))
 		print("Ideal\tPSNR: %.2f" % (total_ideal_psnr / data['NUM_UE']))
+		"""
 
 	# 테스트 종료
 
