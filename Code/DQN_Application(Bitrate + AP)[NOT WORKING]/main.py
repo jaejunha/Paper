@@ -81,8 +81,6 @@ def train_simulation(data):
 			else:
 				action = network.get_action()
 			
-			print(action)
-
 			epsilon -= 1 / DELTA_EPSILON
 
 			diff, error = simulation.step(ue, action)
@@ -97,6 +95,8 @@ def train_simulation(data):
 			total_reward = before_diff / (ue + 1)
 
 			if error:
+				reward = -total_reward
+				total_reward = 0
 				network.remember(simulation.state, action, reward, True)
 			else:
 				network.remember(simulation.state, action, reward, (ue == (data['NUM_UE'] - 1)))
