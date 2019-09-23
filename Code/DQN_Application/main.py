@@ -10,7 +10,7 @@ from simulation import Simulation
 from model import DQN
 
 # 최대 에피소드 갯수
-MAX_EPISODE = 10000
+MAX_EPISODE = 100000
 
 # 트레이닝 주기
 INTERVAL_TRAINING = 4
@@ -22,7 +22,7 @@ INTERVAL_UPDATE = 1000
 THRESH_OBSERVE = 100
 
 # 랜덤 액션 조정 수치
-DELTA_EPSILON = 1000
+DELTA_EPSILON = 10000
 
 # 최대 테스트 횟수
 MAX_TEST = 1
@@ -204,12 +204,11 @@ def test_simulation(data):
 				print("UE %d(%dkbps)" % (ue, support_rate), end = " ")
 			print()
 		print()
-		print("Random\tPSNR: %.2f" % (simulation.solve_random() / data['NUM_UE']))
-#		print("Greedy\tPSNR: %.2f" % (simulation.solve_random() / data['NUM_UE']))
-#		print("Fast ???\tPSNR: %.2f" % (simulation.solve_random() / data['NUM_UE']))
-		print("DQN\tPSNR: %.2f" % (total_dqn_psnr / data['NUM_UE']))
-		print("Optimal\tPSNR: %.2f" % (simulation.solve_optimal() / data['NUM_UE']))
-		print("Ideal\tPSNR: %.2f" % (total_ideal_psnr / data['NUM_UE']))
+		print("%s\tPSNR: %.2f" % ("Random".ljust(15), simulation.solve_random() / data['NUM_UE']))
+		print("%s\tPSNR: %.2f" % ("Fast Knapsack".ljust(15), simulation.solve_knapsack() / data['NUM_UE']))
+		print("%s\tPSNR: %.2f" % ("DQN".ljust(15), total_dqn_psnr / data['NUM_UE']))
+		print("%s\tPSNR: %.2f" % ("Optimal".ljust(15), simulation.solve_optimal() / data['NUM_UE']))
+		print("%s\tPSNR: %.2f" % ("Ideal".ljust(15), total_ideal_psnr / data['NUM_UE']))
 
 	# 테스트 종료
 

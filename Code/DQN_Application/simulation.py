@@ -83,6 +83,7 @@ class Simulation:
 				self.info[ue][j][CONST_AVILABLE] = _get_random_bandwidth()
 	
 		for i in range(self.NUM_UE):
+			# 요구 bitrate
 			request = np.random.randint(len(self.list_rate))
 			for j in range(self.NUM_AP):
 				if self.info[i][j][CONST_CONNECTABLE] == 1:
@@ -176,27 +177,55 @@ class Simulation:
 			timeslot[ap] -= rate / info[i][ap][CONST_AVAILABLE]
 			self.random_solution += self.get_PSNR(rate)
 			
-
 		return self.random_solution
 
-	"""
-	def solve_random(self):
-		timeslot = []
+	
+	def solve_knapsack(self):
+		list_timeslot = []
+		list_priority = []
+		
+		# Timeslot에 따른 우선순위
+		# j는 ap인덱스
 		for j in range(self.NUM_AP):
-			timeslot.append(self.VAL_TIMESLOT)
+			list_timeslot.append([self.VAL_TIMESLOT, j])
 
 		info = copy.deepcopy(self.info)
-		self.random_solution = 0
+		# 비트레이트에 따른 우선 순위
+		for ue in range(self.NUM_UE):
+			list_priority.append([int(info[ue][0][CONST_REQUEST]), ue])
 
-		for i in range(self.NUM_UE):
-			for j in range(self.NUM_AP):
-				for k in range(self.NUM_RATE):
-					if k > info[i][j][CONST_REQUEST]:
+		self.knapsack_solution = 0
+
+		list_priority.sort(reverse = True)
+		
+		# 비트레이트 우선순위에 따라 넣음
+		for ue in list_priority:
+			list_timeslot.sort(reverse = True)
+			
+			# ap 찾았을 경우
+			find = False
+
+			for ap in list_timeslot:
+				# 연결 불가능한 경우
+				if info[ue[1]][ap[1]][CONST_CONNECTABLE] == 0:
+					continue
+
+				# 최대 이용가능한 bitrate 찾아보기
+				for k in range(ue[0], -1, -1):
+					rate = self.list_rate[k]
+					timeslot = rate / info[ue[1]][ap[1]][CONST_AVAILABLE]
+					if ap[0] - timeslot >= 0:
+						ap[0] -= timeslot
+						self.knapsack_solution += self.get_PSNR(rate)
+						find = True
 						break
+	
+				#찾은 경우 다음 UE 탐색
+				if find:
+					break	
 
-		return self.random_solution
-	"""
-
+		return self.knapsack_solution
+	
 
 	def solve_optimal(self):
 		timeslot = []
