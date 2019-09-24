@@ -8,6 +8,7 @@ import sys
 import utility as Util
 from simulation import Simulation
 from model import DQN
+import timeit
 
 # 최대 에피소드 갯수
 MAX_EPISODE = 100000
@@ -137,21 +138,23 @@ def test_simulation(data):
 
 	# 테스트 시작
 	for episode in range(MAX_TEST):
-
+		time = 0
+		
 		list_connection = [[] for i in range(data['NUM_AP'])]
 
 		total_reward = 0
 	
 		before_reward = 0
 
-		simulation.reset()
+		simulation.reset()		
 		simulation.make_state()
 
 		network.init_state(simulation.state)
+		start = timeit.default_timer()
 
 		# UE 차례로 AP에 할당
 		for ue in range(data['NUM_UE']):
-			
+
 			action = network.get_action()
 			list_connection[action].append(ue)			
 
@@ -169,6 +172,7 @@ def test_simulation(data):
 			if error:
 				break
 	
+		time += (timeit.default_timer() - start)
 		print()
 		print("Fairness:", total_reward)
 		print()
@@ -182,7 +186,9 @@ def test_simulation(data):
 		
 			# AP에 할당된 Timeslot이 허용 Timeslot보다 넘치는 경우
 			if simulation.state[SUM_TIMESLOT][ap] > data['VAL_TIMESLOT']:
+				start = timeit.default_timer()
 				simulation.adjust_bitrate(ap, list_connection[ap])
+				time += (timeit.default_timer() - start)
 		
 		print()
 
@@ -204,9 +210,10 @@ def test_simulation(data):
 				print("UE %d(%dkbps)" % (ue, support_rate), end = " ")
 			print()
 		print()
+		print("%s\tPSNR: %.2f %.4fs" % ("DQN".ljust(15), total_dqn_psnr / data['NUM_UE'], time))
 		print("%s\tPSNR: %.2f" % ("Random".ljust(15), simulation.solve_random() / data['NUM_UE']))
-		print("%s\tPSNR: %.2f" % ("Fast Knapsack".ljust(15), simulation.solve_knapsack() / data['NUM_UE']))
-		print("%s\tPSNR: %.2f" % ("DQN".ljust(15), total_dqn_psnr / data['NUM_UE']))
+		performance, time = simulation.solve_knapsack()
+		print("%s\tPSNR: %.2f %.4fs" % ("Knapsack(MTM)".ljust(15), performance / data['NUM_UE'], time))
 		print("%s\tPSNR: %.2f" % ("Optimal".ljust(15), simulation.solve_optimal() / data['NUM_UE']))
 		print("%s\tPSNR: %.2f" % ("Ideal".ljust(15), total_ideal_psnr / data['NUM_UE']))
 

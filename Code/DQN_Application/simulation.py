@@ -2,6 +2,8 @@
 import numpy as np
 import random
 import copy
+import timeit
+from mkp.algorithms import mtm
 
 # UE와 AP 사이 정보
 SIZE_INFO = 4
@@ -181,50 +183,85 @@ class Simulation:
 
 	
 	def solve_knapsack(self):
-		list_timeslot = []
-		list_priority = []
-		
-		# Timeslot에 따른 우선순위
-		# j는 ap인덱스
-		for j in range(self.NUM_AP):
-			list_timeslot.append([self.VAL_TIMESLOT, j])
+		start = timeit.default_timer()
 
 		info = copy.deepcopy(self.info)
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				info[ue][ap][CONST_SUPPORT] = info[ue][ap][CONST_REQUEST]
+	
+		list_priority = []
 		# 비트레이트에 따른 우선 순위
 		for ue in range(self.NUM_UE):
-			list_priority.append([int(info[ue][0][CONST_REQUEST]), ue])
-
-		self.knapsack_solution = 0
-
+			list_priority.append([int(info[ue][0][CONST_SUPPORT]), ue])
 		list_priority.sort(reverse = True)
-		
-		# 비트레이트 우선순위에 따라 넣음
-		for ue in list_priority:
-			list_timeslot.sort(reverse = True)
-			
-			# ap 찾았을 경우
-			find = False
 
-			for ap in list_timeslot:
-				# 연결 불가능한 경우
-				if info[ue[1]][ap[1]][CONST_CONNECTABLE] == 0:
-					continue
+		list_connection = None
+		while True:
 
-				# 최대 이용가능한 bitrate 찾아보기
-				for k in range(ue[0], -1, -1):
-					rate = self.list_rate[k]
-					timeslot = rate / info[ue[1]][ap[1]][CONST_AVAILABLE]
-					if ap[0] - timeslot >= 0:
-						ap[0] -= timeslot
-						self.knapsack_solution += self.get_PSNR(rate)
-						find = True
+			# 가방안에 물건 담을 수 있는지
+			error = False
+
+			list_value = []
+			list_weight = []		
+			for ue in range(self.NUM_UE):
+				rate = self.list_rate[int(info[ue][0][CONST_SUPPORT])]
+				list_value.append(self.get_PSNR(rate))
+				list_weight.append(rate)
+			list_capacity = [int(self.VAL_TIMESLOT * BW_AVG)] * self.NUM_AP
+			try:
+				sum_psnr, list_connection, back, _ = mtm(list_value, list_weight, list_capacity)
+
+				for connection in list_connection:
+					# 가방에 물건 다 못 담는 경우
+					if connection == -1:
+						error = True
 						break
-	
-				#찾은 경우 다음 UE 탐색
-				if find:
-					break	
 
-		return self.knapsack_solution
+			except:
+				error = True
+			
+			# 에러가 없으면 다음 단계로
+			if error == False:
+				break
+			# 비트레이트 줄이고 다시 가방 담기 반복하도록
+			else:
+				list_priority.sort(reverse = True)
+				# 비트레이트 한단계 낮춤
+				list_priority[0][0] -= 1
+				ue = list_priority[0][1]
+				for ap in range(self.NUM_AP):
+					info[ue][ap][CONST_SUPPORT] -= 1
+				
+		while True:
+
+			# AP에 UE연결 모두 가능한지
+			error = False
+
+			list_timeslot = [self.VAL_TIMESLOT] * self.NUM_AP
+			for ue, ap in enumerate(list_connection):
+				rate = self.list_rate[int(info[ue][ap][CONST_SUPPORT])]
+				timeslot = rate / info[ue][ap][CONST_AVAILABLE]
+				list_timeslot[ap] -= timeslot
+				if list_timeslot[ap] < 0:
+					list_priority.sort(reverse = True)
+					# 비트레이트 한단계 낮춤
+					list_priority[0][0] -= 1
+					ue = list_priority[0][1]
+					for ap in range(self.NUM_AP):
+						info[ue][ap][CONST_SUPPORT] -= 1
+					error = True
+					break
+			if error == False:
+				break
+
+		# PSNR 합 구함
+		self.knapsack_solution = 0		
+		for ue, ap in enumerate(list_connection):
+			rate = self.list_rate[int(info[ue][ap][CONST_SUPPORT])]
+			self.knapsack_solution += self.get_PSNR(rate)
+
+		return self.knapsack_solution, (timeit.default_timer() - start)
 	
 
 	def solve_optimal(self):
