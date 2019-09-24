@@ -25,3 +25,7 @@ DQN Code
 ```
 https://github.com/golbin/TensorFlow-Tutorials
 ```
+Multiple Knapsack Problem
+```
+https://github.com/jmyrberg/mkp
+```
