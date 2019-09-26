@@ -25,7 +25,11 @@ DQN Code
 ```
 https://github.com/golbin/TensorFlow-Tutorials
 ```
-Multiple Knapsack Problem
+Multiple Knapsack Problem(MTM)
 ```
 https://github.com/jmyrberg/mkp
+```
+Multiple Knapsack Problem(MTHM)
+```
+http://www.or.deis.unibo.it/kp/Chapter6.pdf
 ```

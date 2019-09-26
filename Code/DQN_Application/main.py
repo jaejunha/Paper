@@ -168,7 +168,7 @@ def test_simulation(data):
 				network.remember(simulation.state, action, reward, True)
 			else:
 				network.remember(simulation.state, action, reward, (ue == (data['NUM_UE'] - 1)))
-
+		
 			if error:
 				break
 	
@@ -212,9 +212,12 @@ def test_simulation(data):
 		print()
 		print("%s\tPSNR: %.2f %.4fs" % ("DQN".ljust(15), total_dqn_psnr / data['NUM_UE'], time))
 		print("%s\tPSNR: %.2f" % ("Random".ljust(15), simulation.solve_random() / data['NUM_UE']))
-		performance, time = simulation.solve_knapsack()
+		# performance, time = simulation.solve_mthm()
+		# print("%s\tPSNR: %.2f %.4fs" % ("Knapsack(MTHM)".ljust(15), performance / data['NUM_UE'], time))
+		performance, time = simulation.solve_mtm()
 		print("%s\tPSNR: %.2f %.4fs" % ("Knapsack(MTM)".ljust(15), performance / data['NUM_UE'], time))
-		print("%s\tPSNR: %.2f" % ("Optimal".ljust(15), simulation.solve_optimal() / data['NUM_UE']))
+		performance, time = simulation.solve_optimal()
+		print("%s\tPSNR: %.2f %.4fs" % ("Optimal".ljust(15), performance / data['NUM_UE'], time))
 		print("%s\tPSNR: %.2f" % ("Ideal".ljust(15), total_ideal_psnr / data['NUM_UE']))
 
 	# 테스트 종료
