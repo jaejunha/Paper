@@ -146,6 +146,8 @@ class Simulation:
 		return 6.4157 * math.log10(rate) + 22.27
 
 	def solve_random(self):
+		start = timeit.default_timer()
+
 		timeslot = []
 		for j in range(self.NUM_AP):
 			timeslot.append(self.VAL_TIMESLOT)
@@ -180,7 +182,7 @@ class Simulation:
 			timeslot[ap] -= rate / info[i][ap][CONST_AVAILABLE]
 			self.random_solution += self.get_PSNR(rate)
 			
-		return self.random_solution
+		return self.random_solution, (timeit.default_timer() - start)
 
 	
 	def solve_mtm(self):
