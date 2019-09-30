@@ -184,7 +184,53 @@ class Simulation:
 			
 		return self.random_solution, (timeit.default_timer() - start)
 
-	
+	def solve_greedy(self):
+		start = timeit.default_timer()
+
+		list_timeslot = []
+		list_priority = []
+
+		# Timeslot에 따른 우선순위
+		for ap in range(self.NUM_AP):
+			list_timeslot.append([self.VAL_TIMESLOT, ap])
+
+		info = copy.deepcopy(self.info)
+
+		# 비트레이트에 따른 우선 순위
+		for ue in range(self.NUM_UE):
+			list_priority.append([int(info[ue][0][CONST_REQUEST]), ue])
+
+		self.greedy_solution = 0
+		list_priority.sort(reverse = True)
+
+		# 비트레이트 우선순위에 따라 넣음
+		for ue in list_priority:
+			list_timeslot.sort(reverse = True)
+
+			# ap 찾았을 경우
+			find = False
+
+			for ap in list_timeslot:
+				# 연결 불가능한 경우
+				if info[ue[1]][ap[1]][CONST_CONNECTABLE] == 0:
+					continue
+
+				# 최대 이용가능한 bitrate 찾아보기
+				for k in range(ue[0], -1, -1):
+					rate = self.list_rate[k]
+					timeslot = rate / info[ue[1]][ap[1]][CONST_AVAILABLE]
+					if ap[0] - timeslot >= 0:
+						ap[0] -= timeslot
+						self.greedy_solution += self.get_PSNR(rate)
+						find = True
+						break
+
+				#찾은 경우 다음 UE 탐색
+				if find:
+					break	
+
+		return self.greedy_solution, (timeit.default_timer() - start)
+
 	def solve_mtm(self):
 		start = timeit.default_timer()
 
@@ -238,7 +284,7 @@ class Simulation:
 				list_timeslot[ap][0] -= timeslot 
 
 		# 가방에 안 담긴 물건들 넣기
-		if finish == True:
+		if finish == False:
 				list_priority.sort(reverse = True)
 				list_timeslot.sort(reverse = True)
 				for priority in list_priority:
@@ -327,8 +373,10 @@ class Simulation:
 			sum_psnr, list_connection = mthm(self.NUM_UE, self.NUM_AP, list_value, list_weight, list_capacity)
 		except Exception as e:
 			print(e)
+
 		if list_connection == None:
 			list_connection = [-1] * self.NUM_UE
+
 		for ue, ap in enumerate(list_connection):
 			# 가방에 물건 다 못 담는 경우
 			if ap == -1:
@@ -340,7 +388,7 @@ class Simulation:
 				list_timeslot[ap][0] -= timeslot 
 
 		# 가방에 안 담긴 물건들 넣기
-		if finish == True:
+		if finish == False:
 				list_priority.sort(reverse = True)
 				list_timeslot.sort(reverse = True)
 				for priority in list_priority:
