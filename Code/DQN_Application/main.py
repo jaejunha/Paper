@@ -26,7 +26,7 @@ THRESH_OBSERVE = 100
 DELTA_EPSILON = 1000
 
 # 최대 테스트 횟수
-MAX_TEST = 1
+MAX_TEST = 2
 
 # UE와 AP 사이 정보
 SIZE_INFO = 4
@@ -121,7 +121,21 @@ def train_simulation(data):
 			
 	# 학습 종료
 	
-	
+list_dqn_psnr = []
+list_dqn_time = []
+list_random_psnr = []
+list_random_time = []
+list_greedy_psnr = []
+list_greedy_time = []
+list_mthm_psnr = []
+list_mthm_time = []
+list_mtm_psnr = []
+list_mtm_time = []
+list_bb_psnr = []
+list_bb_time = []
+list_ideal_psnr = []
+list_ideal_time = [0] * MAX_TEST
+
 """
 재생 모드
 """
@@ -209,24 +223,76 @@ def test_simulation(data):
 				
 				print("UE %d(%dkbps)" % (ue, support_rate), end = " ")
 			print()
-		print()
-		print("%s\tPSNR: %.2f %.4f" % ("DQN".ljust(15), total_dqn_psnr / data['NUM_UE'], time))
+		print()		
+		list_dqn_psnr.append(total_dqn_psnr / data['NUM_UE'])
+		list_dqn_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("DQN".ljust(20), total_dqn_psnr / data['NUM_UE'], time))
+		performance, time = simulation.solve_fract()
+		print("%s\tPSNR: %.2f %.4f" % ("Fractional".ljust(20), performance / data['NUM_UE'], time))
 		performance, time = simulation.solve_random()
-		print("%s\tPSNR: %.2f %.4f" % ("Random".ljust(15), performance / data['NUM_UE'], time))
+		list_random_psnr.append(performance / data['NUM_UE'])
+		list_random_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("Random".ljust(20), performance / data['NUM_UE'], time))
 		performance, time = simulation.solve_greedy()
-		print("%s\tPSNR: %.2f %.4f" % ("Greedy".ljust(15), performance / data['NUM_UE'], time))
+		list_greedy_psnr.append(performance / data['NUM_UE'])
+		list_greedy_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("Greedy".ljust(20), performance / data['NUM_UE'], time))
 		performance, time = simulation.solve_mthm()
-		print("%s\tPSNR: %.2f %.4f" % ("Knapsack(MTHM)".ljust(15), performance / data['NUM_UE'], time))
+		list_mthm_psnr.append(performance / data['NUM_UE'])
+		list_mthm_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("Knapsack(MTHM)".ljust(20), performance / data['NUM_UE'], time))
+		#"""
 		performance, time = simulation.solve_mtm()
-		print("%s\tPSNR: %.2f %.4f" % ("Knapsack(MTM)".ljust(15), performance / data['NUM_UE'], time))
-		"""
-		performance, time = simulation.solve_optimal()
-		print("%s\tPSNR: %.2f %.4f" % ("Optimal".ljust(15), performance / data['NUM_UE'], time))
-		"""
-		print("%s\tPSNR: %.2f" % ("Ideal".ljust(15), total_ideal_psnr / data['NUM_UE']))
+		list_mtm_psnr.append(performance / data['NUM_UE'])
+		list_mtm_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("Knapsack(MTM)".ljust(20), performance / data['NUM_UE'], time))
+		performance, time = simulation.solve_bb()
+		list_bb_psnr.append(performance / data['NUM_UE'])
+		list_bb_time.append(time)
+		print("%s\tPSNR: %.2f %.4f" % ("Branch and Bound".ljust(20), performance / data['NUM_UE'], time))
+		#"""
+		list_ideal_psnr.append(total_ideal_psnr / data['NUM_UE'])
+		print("%s\tPSNR: %.2f" % ("Ideal".ljust(20), total_ideal_psnr / data['NUM_UE']))
+
 
 	# 테스트 종료
 
+	"""
+	sum_psnr = 0
+	for sol in list_dqn_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_random_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_greedy_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_mtm_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_mthm_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_bb_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+
+	sum_psnr = 0
+	for sol in list_ideal_psnr:
+		sum_psnr += sol
+	print(sum_psnr / MAX_TEST)
+	"""
 
 if __name__ == "__main__":
 
@@ -236,12 +302,10 @@ if __name__ == "__main__":
 	else:
 		input = sys.argv[1]
 		if input == "train":
-			data = Util.initialize_data()
+			data = Util.initialize_data(input)
 			train_simulation(data)
-			
 		elif input == "test":
-			data = Util.initialize_data()
-			test_simulation(data)
-			
+			data = Util.initialize_data(input)
+			test_simulation(data)	
 		else:
 			print("Check your input")

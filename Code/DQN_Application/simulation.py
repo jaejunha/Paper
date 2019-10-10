@@ -24,10 +24,6 @@ CONST_REVERSE = -1
 # Time slot 인덱스
 SUM_TIMESLOT = 0
 
-# Bandwidth 정보
-BW_AVG = 2000
-BW_STD = 500
-
 # 백분율에서 사용
 MAX_PERCENT = 100
 
@@ -37,6 +33,8 @@ class Simulation:
 		self.NUM_AP = data['NUM_AP']
 		self.PERCENT_CONNECT = data['PERCENT_CONNECT']
 		self.VAL_TIMESLOT = data['VAL_TIMESLOT']
+		self.BW_AVG = data['BW_AVG']
+		self.BW_STD = data['BW_STD']
 		
 		self.list_rate = data['LIST_RATE']
 		self.NUM_RATE = data['NUM_RATE']
@@ -66,7 +64,7 @@ class Simulation:
 				percent = np.random.randint(MAX_PERCENT)
 				if percent < self.PERCENT_CONNECT:
 					self.info[ue][ap][CONST_CONNECTABLE] = CONST_ON
-					self.info[ue][ap][CONST_AVAILABLE] = _get_random_bandwidth()
+					self.info[ue][ap][CONST_AVAILABLE] = self.get_random_bandwidth()
 
 				sum += self.info[ue][ap][CONST_CONNECTABLE]
 		
@@ -74,7 +72,7 @@ class Simulation:
 			if sum == 0:
 				ap_random = np.random.randint(self.NUM_AP)
 				self.info[ue][ap_random][CONST_CONNECTABLE] = CONST_ON
-				self.info[ue][ap_random][CONST_AVILABLE] = _get_random_bandwidth()
+				self.info[ue][ap_random][CONST_AVILABLE] = self.get_random_bandwidth()
 				
 		# AP-UE 연결
 		for ap in range(self.NUM_AP):
@@ -85,7 +83,7 @@ class Simulation:
 				percent = np.random.randint(MAX_PERCENT)
 				if percent < self.PERCENT_CONNECT:
 					self.info[ue][ap][CONST_CONNECTABLE] = CONST_ON
-					self.info[ue][ap][CONST_AVAILABLE] = _get_random_bandwidth()
+					self.info[ue][ap][CONST_AVAILABLE] = self.get_random_bandwidth()
 
 				sum += self.info[ue][ap][CONST_CONNECTABLE]
 			
@@ -93,7 +91,7 @@ class Simulation:
 			if sum == 0:
 				ue_random = np.random.randint(self.NUM_UE)
 				self.info[ue_random][ap][CONST_CONNECTABLE] = CONST_ON
-				self.info[ue_random][ap][CONST_AVILABLE] = _get_random_bandwidth()
+				self.info[ue_random][ap][CONST_AVILABLE] = self.get_random_bandwidth()
 	
 		for ue in range(self.NUM_UE):
 			# 요구 bitrate
@@ -106,7 +104,7 @@ class Simulation:
 					# 처음에는 요구하는 대로 다 받는다고 가정, 하지만 available bandwidth 보다 요구하는 것이 클 경우는 조정
 					while self.list_rate[support_index] > self.info[ue][ap][CONST_AVAILABLE]:
 						# 최소 bitrate는 받도록
-						if request_index == 0:
+						if support_index == 0:
 							break
 
 						support_index -= 1
@@ -172,13 +170,8 @@ class Simulation:
 		self.solution_random = 0
 
 		for ue in range(self.NUM_UE):
-			list_connectable = []
-			for ap in range(self.NUM_AP):
-				list_connectable.append(ap)
-			
-			random.shuffle(list_connectable)
 			# 랜덤 AP
-			ap_random = list_connectable[0]
+			ap_random = np.random.randint(self.NUM_AP)
 
 			max_index = int(info[ue][ap_random][CONST_SUPPORT])
 			# 최대 이용가능한 bitrate 찾아보기
@@ -245,7 +238,115 @@ class Simulation:
 
 		return self.solution_greedy, (timeit.default_timer() - start)
 
+
+	def solve_fract(self):
+		
+		# support 인덱스 초기화
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				self.info[ue][ap][CONST_SUPPORT] = self.info[ue][ap][CONST_REQUEST]
+
+		start = timeit.default_timer()
+
+		list_timeslot = []
+		list_priority = []
+
+		# AP Timeslot
+		for ap in range(self.NUM_AP):
+			list_timeslot.append(self.VAL_TIMESLOT)
+
+		info = copy.deepcopy(self.info)
+
+		# PSNR / Timeslot에 따른 우선순위
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				support_index = int(info[ue][ap][CONST_SUPPORT])	
+				list_priority.append((self.list_PSNR[support_index] * info[ue][ap][CONST_AVAILABLE] / self.list_rate[support_index], (ue, ap)))
+
+		self.solution_fract = 0
+
+		while True:
+			list_priority.sort(reverse = True)
+
+			# print(list_priority)
+	
+			# 가장 높은 가치를 (PSNR / BW) 가지고 있는 것 선택
+			priority_greedy = list_priority[0]
+			ue = priority_greedy[1][0]
+			ap = priority_greedy[1][1]
+
+			# 연결 불가능한 경우 -> 이거 나중에 생각하기...
+			"""
+			if info[ue][ap][CONST_CONNECTABLE] == 0:
+				continue
+			"""
+
+			support_index = int(info[ue][ap][CONST_SUPPORT])
+			timeslot = self.list_rate[support_index] / info[ue][ap][CONST_AVAILABLE]	
+
+			remain = list_timeslot[ap] - timeslot
+			# Timeslot이 충분하면
+			if (remain >= 0)  or (support_index == 0):
+				list_timeslot[ap] -= timeslot
+				self.solution_fract += self.list_PSNR[support_index]
+			
+				for priority in list_priority[:]:
+					if priority[1][0] == ue:
+						list_priority.remove(priority)
+
+				if len(list_priority) == 0:
+					break
+					
+			else:
+				# 몇퍼센트 더 할당 해야할지
+				support_index = int(info[ue][ap][CONST_SUPPORT])
+				need = -remain * info[ue][ap][CONST_AVAILABLE] / self.list_rate[support_index]
+
+				list_priority_part = []
+				# PSNR / Timeslot에 따른 우선순위 (부분)
+				for ap_part in range(self.NUM_AP):
+					support_index = int(info[ue][ap_part][CONST_SUPPORT])	
+					list_priority_part.append((self.list_PSNR[support_index] * info[ue][ap_part][CONST_AVAILABLE] / (self.list_rate[support_index] * need), ap_part))
+				list_priority_part.sort(reverse = True)
+			
+				find = False
+				for priority_part in list_priority_part:
+					ap_part = priority_part[1]
+					support_index = int(info[ue][ap][CONST_SUPPORT])
+					timeslot = self.list_rate[support_index] * need / info[ue][ap_part][CONST_AVAILABLE]	
+					if (list_timeslot[ap_part] > timeslot) or (support_index == 0):
+						list_timeslot[ap] = 0
+						list_timeslot[ap_part] -= priority_part[0]
+						self.solution_fract += self.list_PSNR[support_index]						
+						find = True
+						break
+				if find == True:
+					# 리스트 갱신
+					for priority in list_priority[:]:
+						if priority[1][0] == ue:
+							list_priority.remove(priority)
+
+					if len(list_priority) == 0:
+						break
+				else:
+					# 서비스할 비트레이트 한 단계 낮춤
+					info[ue][ap][CONST_SUPPORT] -= 1	
+					support_index = int(info[ue][ap][CONST_SUPPORT])
+					# 튜플은 수정 불가능해서 새로 넣음
+					list_priority.append((self.list_PSNR[support_index] * info[ue][ap][CONST_AVAILABLE] / self.list_rate[support_index], (ue, ap)))
+					# 이전 데이타는 삭제
+					del(list_priority[0])
+				
+		return self.solution_fract, (timeit.default_timer() - start)
+
+
 	def solve_mtm(self):
+
+		# support 인덱스 초기화
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				self.info[ue][ap][CONST_SUPPORT] = self.info[ue][ap][CONST_REQUEST]
+
 		start = timeit.default_timer()
 
 		info = copy.deepcopy(self.info)
@@ -348,6 +449,12 @@ class Simulation:
 	
 
 	def solve_mthm(self):
+
+		# support 인덱스 초기화
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				self.info[ue][ap][CONST_SUPPORT] = self.info[ue][ap][CONST_REQUEST]
+
 		start = timeit.default_timer()
 
 		info = copy.deepcopy(self.info)	
@@ -449,8 +556,13 @@ class Simulation:
 
 		return self.solution_mthm, (timeit.default_timer() - start)
 	
+	def solve_bb(self):
 
-	def solve_optimal(self):
+		# support 인덱스 초기화
+		for ue in range(self.NUM_UE):
+			for ap in range(self.NUM_AP):
+				self.info[ue][ap][CONST_SUPPORT] = self.info[ue][ap][CONST_REQUEST]
+
 		start = timeit.default_timer()
 
 		list_timeslot = []
@@ -458,16 +570,16 @@ class Simulation:
 			list_timeslot.append(self.VAL_TIMESLOT)
 		
 		info = copy.deepcopy(self.info)
-		self.solution_optimal = 0
+		self.solution_bb = 0
 
 		self._dfs(0, info, list_timeslot, 0)
 
-		return self.solution_optimal, (timeit.default_timer() - start)
+		return self.solution_bb, (timeit.default_timer() - start)
 		
 	def _dfs(self, ue, info, list_timeslot, PSNR):
 		if ue == self.NUM_UE:
-			if PSNR > self.solution_optimal:
-				self.solution_optimal = PSNR
+			if PSNR > self.solution_bb:
+				self.solution_bb = PSNR
 			return
 
 		else:
@@ -493,12 +605,12 @@ class Simulation:
 						break
 					
 					else:
-						self._dfs(ue + 1, info, timeslot, PSNR + self.list_PSNR[support])				
+						self._dfs(ue + 1, info, list_timeslot, PSNR + self.list_PSNR[support])				
 						info[ue][ap][CONST_SUPPORT] = origin_support
 						list_timeslot[ap] = origin_timeslot
 
-def _get_random_bandwidth():
-	bandwidth = random.gauss(BW_AVG, BW_STD)
-	if bandwidth < 0:
-		bandwidth = -bandwidth
-	return bandwidth
+	def get_random_bandwidth(self):
+		bandwidth = random.gauss(self.BW_AVG, self.BW_STD)
+		if bandwidth < 0:
+			bandwidth = -bandwidth
+		return bandwidth
