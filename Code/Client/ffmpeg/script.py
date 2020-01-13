@@ -73,7 +73,7 @@ if input_length > sum_length:
 """
 mp4파일 만들기
 """
-name = input_file.split(",")[0]
+name = input_file.split(".")[0]
 if not os.path.exists(name + ".mp4"):
 	os.system("ffmpeg -i " + input_file + " -c:v libx264 -preset ultrafast -qp 0 -pix_fmt yuv420p -movflags +faststart " + name + ".mp4")
 
