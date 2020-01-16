@@ -77,9 +77,7 @@ name = input_file.split(".")[0]
 if not os.path.exists(name + ".mp4"):
 	os.system("ffmpeg -i " + input_file + " -c:v libx264 -preset ultrafast -qp 0 -pix_fmt yuv420p -movflags +faststart " + name + ".mp4")
 
-index = 0
-while input_length * index < sum_length:
-	os.system("ffmpeg -ss " + str(input_length * index) + " -i " + name + ".mp4 -t 2 -c:v libx264 -c:a copy temp_" + str(index) + ".mp4")
-	os.system("ffmpeg -i temp_" + str(index) + ".mp4 -b:v " + input_rate + " " + name + "_" + str(index) + "_" + input_rate + ".mp4")
-	os.remove("temp_" + str(index) + ".mp4")
-	index += 1
+if not os.path.exists(name + "_" + input_rate + ".mp4"):
+	os.system("ffmpeg -i " + name + ".mp4 -b:v " + input_rate + " " + name + "_" + input_rate + ".mp4")
+
+os.system("MP4Box -dash " + str(input_length * 1000) + " -profile live -out dash.mp4 " + name + "_" + input_rate + ".mp4")
